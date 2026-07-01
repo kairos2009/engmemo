@@ -1235,7 +1235,7 @@ function renderCal(){
   const monEl=document.getElementById('s-mon');
   monEl.textContent=(mNet===0?'':(mNet>0?'+':'-'))+Math.abs(mNet).toLocaleString()+'원';
   monEl.style.color=mNet>0?'var(--blue)':(mNet<0?'var(--red)':'var(--text)');
-  document.getElementById('s-mon-label').textContent=monthStart===1?'월간 합계':'월간 합계('+monthStart+'일~)';
+  document.getElementById('s-mon-label').textContent=monthStart===1?'월간 합계':'월간(전월 '+monthStart+'일~당월 '+(monthStart-1)+'일)';
 
   const yrEl=document.getElementById('s-yr');
   yrEl.textContent=(yNet===0?'':(yNet>0?'+':'-'))+Math.abs(yNet).toLocaleString()+'원';
