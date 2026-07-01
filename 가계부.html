@@ -1205,10 +1205,6 @@ function renderCal(){
     if(d.getFullYear()===cy&&d.getMonth()===cm){
       const k=d.getDate(); if(!byDay[k])byDay[k]={inc:0,exp:0};
       if(t.type==='inc')byDay[k].inc+=t.amount; else byDay[k].exp+=t.amount;
-    } else if(monthStart!==1&&inMonthRange(t.date,cy,cm)){
-      // 전월 날짜지만 커스텀 월 범위에 포함 → 1일 셀에 합산
-      if(!byDay[1])byDay[1]={inc:0,exp:0};
-      if(t.type==='inc')byDay[1].inc+=t.amount; else byDay[1].exp+=t.amount;
     }
   });
   const byDayPlanned={};
