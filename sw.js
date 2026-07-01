@@ -1,9 +1,9 @@
 const CACHE = 'gb2-v1';
 const ASSETS = [
-  '/engmemo/가계부.html',
-  '/engmemo/manifest.json',
-  '/engmemo/icon-192.png',
-  '/engmemo/icon-512.png'
+  './가계부.html',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', e => {
@@ -22,8 +22,6 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
-  const url = new URL(e.request.url);
-  if (!url.pathname.startsWith('/engmemo/') && !url.hostname.includes('googleapis.com')) return;
   e.respondWith(
     caches.match(e.request).then(cached => {
       const net = fetch(e.request).then(res => {
