@@ -205,6 +205,10 @@ html, body {
   text-align: center;
   line-height: 1.3;
 }
+.cal-cell.is-other-month .day-num { color: #bbb !important; font-weight: 400; }
+.cal-cell.is-other-month .day-exp,
+.cal-cell.is-other-month .day-inc,
+.cal-cell.is-other-month .day-planned { opacity: 0.5; }
 
 /* 하단 합계 */
 .cal-footer {
@@ -1183,7 +1187,8 @@ let TXS = [];
 try { TXS = JSON.parse(localStorage.getItem('gb2')||'[]'); } catch(e){}
 function save(){ try{ localStorage.setItem('gb2',JSON.stringify(TXS)); }catch(e){} }
 
-let cy=new Date().getFullYear(), cm=new Date().getMonth(), cd=new Date().getDate();
+let cy=new Date().getFullYear(), cm=new Date().getMonth();
+let selDateStr=new Date().toISOString().slice(0,10);
 let sy=cy, sm=cm, sType='exp';
 let mType='exp', mCat='', amtStr='', editId=null;
 
@@ -1197,65 +1202,110 @@ function goScr(scrId,tabId){
 function goStat(){ goScr('scr-stat','tab-stat'); renderStat(); }
 
 function renderCal(){
-  document.getElementById('cal-title').textContent=cy+'년 '+(cm+1)+'월';
-  const fd=new Date(cy,cm,1).getDay(), ld=new Date(cy,cm+1,0).getDate(), tod=new Date();
+  const tod=new Date();
+
+  // ── 제목 ──
+  if(monthStart===1){
+    document.getElementById('cal-title').textContent=cy+'년 '+(cm+1)+'월';
+  } else {
+    const sd=new Date(cy,cm-1,monthStart), ed=new Date(cy,cm,monthStart-1);
+    document.getElementById('cal-title').textContent=cy+'년 '+(cm+1)+'월 ('+(sd.getMonth()+1)+'/'+sd.getDate()+'~'+(ed.getMonth()+1)+'/'+ed.getDate()+')';
+  }
+
+  // ── byDay: 해당 커스텀 월 범위 내 거래, date string 키 ──
   const byDay={};
   TXS.forEach(t=>{
-    const d=new Date(t.date);
-    if(d.getFullYear()===cy&&d.getMonth()===cm){
-      const k=d.getDate(); if(!byDay[k])byDay[k]={inc:0,exp:0};
-      if(t.type==='inc')byDay[k].inc+=t.amount; else byDay[k].exp+=t.amount;
+    if(inMonthRange(t.date,cy,cm)){
+      if(!byDay[t.date])byDay[t.date]={inc:0,exp:0};
+      if(t.type==='inc')byDay[t.date].inc+=t.amount; else byDay[t.date].exp+=t.amount;
     }
   });
-  const byDayPlanned={};
-  const viewMonthStr=cy+'-'+String(cm+1).padStart(2,'0');
-  RECURS.forEach(r=>{
-    if(!r.active) return;
-    if(r.startDate && viewMonthStr < r.startDate) return;
-    if(r.endDate   && viewMonthStr > r.endDate)   return;
-    const key=r.id+'_'+viewMonthStr;
-    if(RECUR_LOG[key]) return;
-    const maxDay=new Date(cy,cm+1,0).getDate();
-    const day=Math.min(r.day,maxDay);
-    if(!byDayPlanned[day]) byDayPlanned[day]={exp:0,inc:0};
-    if(r.type==='exp') byDayPlanned[day].exp+=r.amount;
-    else byDayPlanned[day].inc+=r.amount;
-  });
-  const calMon=TXS.filter(t=>{const d=new Date(t.date);return d.getFullYear()===cy&&d.getMonth()===cm;});
-  const cmI=calMon.filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0);
-  const cmE=calMon.filter(t=>t.type==='exp').reduce((s,t)=>s+t.amount,0);
 
+  // ── byDayPlanned: RECURS 예정 ──
+  const byDayPlanned={};
+  function addPlanned(yy,mm){
+    const mStr=yy+'-'+String(mm+1).padStart(2,'0');
+    RECURS.forEach(r=>{
+      if(!r.active) return;
+      if(r.startDate&&mStr<r.startDate) return;
+      if(r.endDate&&mStr>r.endDate) return;
+      const key=r.id+'_'+mStr;
+      if(RECUR_LOG[key]) return;
+      const maxD=new Date(yy,mm+1,0).getDate();
+      const day=Math.min(r.day,maxD);
+      const ds=yy+'-'+String(mm+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+      if(!inMonthRange(ds,cy,cm)) return;
+      if(!byDayPlanned[ds])byDayPlanned[ds]={exp:0,inc:0};
+      if(r.type==='exp')byDayPlanned[ds].exp+=r.amount; else byDayPlanned[ds].inc+=r.amount;
+    });
+  }
+  if(monthStart===1){
+    addPlanned(cy,cm);
+  } else {
+    const prevY=cm===0?cy-1:cy, prevM=cm===0?11:cm-1;
+    addPlanned(prevY,prevM);
+    addPlanned(cy,cm);
+  }
+
+  // ── 수입/지출 합계 ──
+  const ranged=TXS.filter(t=>inMonthRange(t.date,cy,cm));
+  const cmI=ranged.filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0);
+  const cmE=ranged.filter(t=>t.type==='exp').reduce((s,t)=>s+t.amount,0);
   document.getElementById('s-inc').textContent=cmI>0?'+'+cmI.toLocaleString()+'원':'0원';
   document.getElementById('s-exp').textContent=cmE>0?'-'+cmE.toLocaleString()+'원':'0원';
 
-
-  const g=document.getElementById('cal-grid'); g.innerHTML='';
-  for(let i=0;i<fd;i++){const el=document.createElement('div');el.className='cal-cell';el.style.pointerEvents='none';g.appendChild(el);}
-  for(let d=1;d<=ld;d++){
-    const dow2=(fd+d-1)%7, el=document.createElement('div');
+  // ── 셀 생성 헬퍼 ──
+  function makeCell(dateStr,dayNum,dow,isOther){
+    const el=document.createElement('div');
     let cls='cal-cell';
-    if(dow2===0)cls+=' is-sun'; if(dow2===6)cls+=' is-sat';
-    if(d===tod.getDate()&&cy===tod.getFullYear()&&cm===tod.getMonth())cls+=' is-today';
-    if(d===cd)cls+=' is-selected';
+    if(dow===0)cls+=' is-sun'; if(dow===6)cls+=' is-sat';
+    const dt=new Date(dateStr+'T00:00:00');
+    if(dt.getFullYear()===tod.getFullYear()&&dt.getMonth()===tod.getMonth()&&dt.getDate()===tod.getDate())cls+=' is-today';
+    if(dateStr===selDateStr)cls+=' is-selected';
+    if(isOther)cls+=' is-other-month';
     el.className=cls;
-    const num=document.createElement('div'); num.className='day-num'; num.textContent=d; el.appendChild(num);
-    if(byDay[d]){
-      if(byDay[d].exp>0){const s=document.createElement('div');s.className='day-exp';s.textContent=byDay[d].exp.toLocaleString();el.appendChild(s);}
-      if(byDay[d].inc>0){const s=document.createElement('div');s.className='day-inc';s.textContent=byDay[d].inc.toLocaleString();el.appendChild(s);}
+    const num=document.createElement('div');num.className='day-num';num.textContent=dayNum;el.appendChild(num);
+    if(byDay[dateStr]){
+      if(byDay[dateStr].exp>0){const s=document.createElement('div');s.className='day-exp';s.textContent=byDay[dateStr].exp.toLocaleString();el.appendChild(s);}
+      if(byDay[dateStr].inc>0){const s=document.createElement('div');s.className='day-inc';s.textContent=byDay[dateStr].inc.toLocaleString();el.appendChild(s);}
     }
-    if(byDayPlanned[d]){
-      if(byDayPlanned[d].exp>0){const s=document.createElement('div');s.className='day-planned';s.textContent=byDayPlanned[d].exp.toLocaleString();el.appendChild(s);}
+    if(byDayPlanned[dateStr]&&byDayPlanned[dateStr].exp>0){
+      const s=document.createElement('div');s.className='day-planned';s.textContent=byDayPlanned[dateStr].exp.toLocaleString();el.appendChild(s);
     }
-    el.onclick=()=>{cd=d;renderCal();}; g.appendChild(el);
+    el.onclick=()=>{selDateStr=dateStr;renderCal();};
+    return el;
+  }
+
+  // ── 달력 그리드 ──
+  const g=document.getElementById('cal-grid'); g.innerHTML='';
+  if(monthStart===1){
+    const fd=new Date(cy,cm,1).getDay(), ld=new Date(cy,cm+1,0).getDate();
+    for(let i=0;i<fd;i++){const e=document.createElement('div');e.className='cal-cell';e.style.pointerEvents='none';g.appendChild(e);}
+    for(let d=1;d<=ld;d++){
+      const ds=cy+'-'+String(cm+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      g.appendChild(makeCell(ds,d,(fd+d-1)%7,false));
+    }
+  } else {
+    const startDate=new Date(cy,cm-1,monthStart);
+    const endDate=new Date(cy,cm,monthStart-1);
+    const fd=startDate.getDay();
+    for(let i=0;i<fd;i++){const e=document.createElement('div');e.className='cal-cell';e.style.pointerEvents='none';g.appendChild(e);}
+    const cur=new Date(startDate);
+    while(cur<=endDate){
+      const yr=cur.getFullYear(),mo=cur.getMonth(),day=cur.getDate();
+      const ds=yr+'-'+String(mo+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+      g.appendChild(makeCell(ds,day,cur.getDay(),mo!==cm));
+      cur.setDate(cur.getDate()+1);
+    }
   }
   renderTxList();
 }
 
-function goToday(){ const n=new Date();cy=n.getFullYear();cm=n.getMonth();cd=n.getDate();renderCal(); }
+function goToday(){ const n=new Date();cy=n.getFullYear();cm=n.getMonth();selDateStr=n.toISOString().slice(0,10);renderCal(); }
 
 function renderTxList(){
   const w=document.getElementById('tx-wrap');
-  const monthTxs=TXS.filter(t=>{const d=new Date(t.date);return d.getFullYear()===cy&&d.getMonth()===cm;});
+  const monthTxs=TXS.filter(t=>inMonthRange(t.date,cy,cm));
   if(!monthTxs.length){ w.innerHTML='<div class="empty"><div class="empty-ico">📋</div>이 달 거래가 없어요</div>'; return; }
   const DOW2=['일','월','화','수','목','금','토'];
   const byDate={};
@@ -1278,7 +1328,16 @@ function renderTxList(){
   w.innerHTML=h;
 }
 
-function monthShift(d){ cm+=d; if(cm<0){cm=11;cy--;} if(cm>11){cm=0;cy++;} cd=1; renderCal(); }
+function monthShift(d){
+  cm+=d; if(cm<0){cm=11;cy--;} if(cm>11){cm=0;cy++;}
+  if(monthStart===1){
+    selDateStr=cy+'-'+String(cm+1).padStart(2,'0')+'-01';
+  } else {
+    const prevY=cm===0?cy-1:cy, prevM=cm===0?11:cm-1;
+    selDateStr=prevY+'-'+String(prevM+1).padStart(2,'0')+'-'+String(monthStart).padStart(2,'0');
+  }
+  renderCal();
+}
 
 function renderStat(){
   document.getElementById('stat-title').textContent=sy+'년 '+(sm+1)+'월';
@@ -1327,7 +1386,7 @@ function openModal(tx=null){
   mType=tx?tx.type:'exp'; mCat=tx?tx.cat:''; amtStr=tx?String(tx.amount):'';
   mSetType(mType); updAmt(); renderCatGrid();
   document.getElementById('f-memo').value=tx?tx.memo||'':'';
-  const defDate=tx?tx.date:cy+'-'+String(cm+1).padStart(2,'0')+'-'+String(cd).padStart(2,'0');
+  const defDate=tx?tx.date:selDateStr;
   document.getElementById('f-date').value=defDate;
   document.getElementById('overlay').classList.add('open');
 }
