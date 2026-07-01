@@ -1276,7 +1276,10 @@ html, body {
           <input class="f-input" id="r-end" type="month" style="width:100%;background:transparent;border:none;padding:0;height:auto;font-size:14px;font-weight:600;color:var(--text)">
         </div>
       </div>
-      <button class="save-btn" style="margin:0;width:100%" onclick="addRecur()">추가</button>
+      <div style="display:flex;gap:8px">
+        <button id="r-cancel-btn" style="display:none;flex:1;padding:13px;background:#f0f1f3;color:var(--text);border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit" onclick="resetRecurForm()">취소</button>
+        <button id="r-save-btn" style="flex:1;padding:13px;background:var(--text);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit" onclick="saveRecur()">추가</button>
+      </div>
     </div>
     <div style="height:env(safe-area-inset-bottom)"></div>
   </div>
@@ -1715,6 +1718,7 @@ function saveTx(){
 let monthStart = parseInt(localStorage.getItem('gb2_ms') || '1');
 let RECURS = [];
 let RECUR_LOG = {};
+let editRecurId = null;
 try { RECURS = JSON.parse(localStorage.getItem('gb2_recur') || '[]'); } catch(e){}
 try { RECUR_LOG = JSON.parse(localStorage.getItem('gb2_rlog') || '{}'); } catch(e){}
 function saveRecurs(){ try{ localStorage.setItem('gb2_recur', JSON.stringify(RECURS)); }catch(e){} }
@@ -1771,6 +1775,10 @@ function openRecurModal(){
 function closeRecurModal(){ document.getElementById('recur-overlay').classList.remove('open'); }
 function recurBgClose(e){ if(e.target === document.getElementById('recur-overlay')) closeRecurModal(); }
 
+function recurEndLabel(r){
+  if(r.endDate) return r.endDate.replace('-','.');
+  return new Date().getFullYear()+'년 말';
+}
 function renderRecurList(){
   const wrap = document.getElementById('recur-list');
   if(!RECURS.length){
@@ -1779,16 +1787,19 @@ function renderRecurList(){
   }
   wrap.innerHTML = RECURS.map(r => {
     const c = allCats(r.cat);
-    const dateRange = (r.startDate||'').replace('-','.') + ' ~' + (r.endDate ? ' '+(r.endDate||'').replace('-','.') : '');
-    return '<div class="recur-item">'+
-      '<div style="font-size:20px;width:30px;text-align:center;flex-shrink:0">'+c.e+'</div>'+
-      '<div style="flex:1;min-width:0">'+
-        '<div style="font-size:13px;font-weight:600;color:var(--text)">'+r.cat+(r.memo?' · '+r.memo:'')+'</div>'+
-        '<div style="font-size:11px;color:var(--sub);margin-top:2px">매월 '+r.day+'일 · '+dateRange+'</div>'+
+    const dateRange = (r.startDate||'').replace('-','.') + ' ~ ' + recurEndLabel(r);
+    const isEditing = editRecurId === r.id;
+    return '<div class="recur-item" style="'+(isEditing?'background:#f0f7ff;':'')+'">'+
+      '<div style="display:flex;align-items:center;flex:1;min-width:0;cursor:pointer;gap:0" onclick="editRecur('+r.id+')">'+
+        '<div style="font-size:20px;width:30px;text-align:center;flex-shrink:0">'+c.e+'</div>'+
+        '<div style="flex:1;min-width:0;padding:0 6px">'+
+          '<div style="font-size:13px;font-weight:600;color:var(--text)">'+r.cat+(r.memo?' · '+r.memo:'')+'</div>'+
+          '<div style="font-size:11px;color:var(--sub);margin-top:2px">매월 '+r.day+'일 · '+dateRange+'</div>'+
+        '</div>'+
+        '<div style="color:var(--red);font-size:13px;font-weight:700;margin-right:8px;flex-shrink:0">-'+r.amount.toLocaleString()+'원</div>'+
       '</div>'+
-      '<div style="color:var(--red);font-size:13px;font-weight:700;margin-right:8px;flex-shrink:0">-'+r.amount.toLocaleString()+'원</div>'+
-      '<div class="toggle '+(r.active?'on':'')+'" style="flex-shrink:0" onclick="toggleRecurActive('+r.id+')"></div>'+
-      '<button style="background:none;border:none;color:var(--sub);font-size:20px;cursor:pointer;padding:2px 2px 2px 8px;line-height:1" onclick="deleteRecur('+r.id+')">×</button>'+
+      '<div class="toggle '+(r.active?'on':'')+'" style="flex-shrink:0" onclick="event.stopPropagation();toggleRecurActive('+r.id+')"></div>'+
+      '<button style="background:none;border:none;color:var(--sub);font-size:20px;cursor:pointer;padding:2px 2px 2px 8px;line-height:1" onclick="event.stopPropagation();deleteRecur('+r.id+')">×</button>'+
     '</div>';
   }).join('');
 }
@@ -1803,7 +1814,7 @@ function renderRecurForm(){
   document.getElementById('r-memo').value = '';
 }
 
-function addRecur(){
+function saveRecur(){
   const amt = parseInt(document.getElementById('r-amt').value) || 0;
   if(!amt){ alert('금액을 입력해주세요'); return; }
   const startDate = document.getElementById('r-start').value;
@@ -1812,14 +1823,43 @@ function addRecur(){
   const cat = document.getElementById('r-cat').value;
   const memo = document.getElementById('r-memo').value.trim();
   const endDate = document.getElementById('r-end').value || '';
-  RECURS.push({ id: Date.now(), type: 'exp', amount: amt, cat, memo, day, startDate, endDate, active: true });
+  if(editRecurId){
+    const idx = RECURS.findIndex(r => r.id === editRecurId);
+    if(idx !== -1) RECURS[idx] = {...RECURS[idx], amount:amt, cat, memo, day, startDate, endDate};
+  } else {
+    RECURS.push({ id: Date.now(), type:'exp', amount:amt, cat, memo, day, startDate, endDate, active:true });
+  }
   saveRecurs();
+  resetRecurForm();
   renderRecurList();
+  applyRecurring();
+}
+function editRecur(id){
+  const r = RECURS.find(r => r.id === id);
+  if(!r) return;
+  editRecurId = id;
+  document.getElementById('r-amt').value = r.amount;
+  const daySel = document.getElementById('r-day');
+  if(daySel) daySel.value = r.day;
+  const catSel = document.getElementById('r-cat');
+  if(catSel) catSel.value = r.cat;
+  document.getElementById('r-memo').value = r.memo || '';
+  document.getElementById('r-start').value = r.startDate || '';
+  document.getElementById('r-end').value = r.endDate || '';
+  document.getElementById('r-save-btn').textContent = '수정';
+  document.getElementById('r-cancel-btn').style.display = '';
+  renderRecurList();
+  document.getElementById('r-amt').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+function resetRecurForm(){
+  editRecurId = null;
   document.getElementById('r-amt').value = '';
   document.getElementById('r-memo').value = '';
   document.getElementById('r-start').value = '';
   document.getElementById('r-end').value = '';
-  applyRecurring();
+  document.getElementById('r-save-btn').textContent = '추가';
+  document.getElementById('r-cancel-btn').style.display = 'none';
+  renderRecurList();
 }
 
 function deleteRecur(id){
@@ -1837,25 +1877,28 @@ function toggleRecurActive(id){
 function applyRecurring(){
   if(!RECURS.length) return;
   const today = new Date();
-  const tY = today.getFullYear(), tM = today.getMonth(), tD = today.getDate();
+  const tY = today.getFullYear(), tM = today.getMonth();
   let changed = false;
   RECURS.forEach(r => {
-    if(!r.active) return;
-    for(let offset = 11; offset >= 0; offset--){
-      let m = tM - offset, y = tY;
-      while(m < 0){ m += 12; y--; }
+    if(!r.active || !r.startDate) return;
+    const [sY, sMRaw] = r.startDate.split('-').map(Number);
+    const effEnd = r.endDate || (tY + '-12');
+    const [eY, eMRaw] = effEnd.split('-').map(Number);
+    let y = sY, m = sMRaw - 1; // 0-based
+    const capY = eY, capM = eMRaw - 1;
+    while((y < tY || (y === tY && m <= tM)) && (y < capY || (y === capY && m <= capM))){
       const monthStr = y + '-' + String(m+1).padStart(2,'0');
-      if(r.startDate && monthStr < r.startDate) continue;
-      if(r.endDate   && monthStr > r.endDate)   continue;
       const key = r.id + '_' + monthStr;
-      if(RECUR_LOG[key]) continue;
-      const maxDay = new Date(y, m+1, 0).getDate();
-      const day = Math.min(r.day, maxDay);
-      const dateStr = y+'-'+String(m+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
-      TXS.push({ id: Date.now()+Math.random(), type:r.type, amount:r.amount, cat:r.cat,
-        date:dateStr, memo:(r.memo?r.memo+' ':'')+'(고정)', time:'', recurId:r.id });
-      RECUR_LOG[key] = true;
-      changed = true;
+      if(!RECUR_LOG[key]){
+        const maxDay = new Date(y, m+1, 0).getDate();
+        const day = Math.min(r.day, maxDay);
+        const dateStr = y+'-'+String(m+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+        TXS.push({ id: Date.now()+Math.random(), type:r.type, amount:r.amount, cat:r.cat,
+          date:dateStr, memo:(r.memo?r.memo+' ':'')+'(고정)', time:'', recurId:r.id });
+        RECUR_LOG[key] = true;
+        changed = true;
+      }
+      m++; if(m > 11){ m = 0; y++; }
     }
   });
   if(changed){ save(); saveRecurLog(); renderCal(); }
