@@ -1407,7 +1407,7 @@ function syncMsLabel(){
 function openMonthStartModal(){
   const g = document.getElementById('ms-grid');
   g.innerHTML = '';
-  for(let d = 1; d <= 28; d++){
+  for(let d = 1; d <= 31; d++){
     const btn = document.createElement('button');
     btn.className = 'ms-day-btn' + (d === monthStart ? ' sel' : '');
     btn.textContent = d;
@@ -1430,8 +1430,12 @@ function msBgClose(e){ if(e.target === document.getElementById('ms-overlay')) cl
 function inMonthRange(dateStr, year, month){
   const d = new Date(dateStr + 'T00:00:00');
   if(monthStart === 1) return d.getFullYear() === year && d.getMonth() === month;
-  const start = new Date(year, month - 1, monthStart);
-  const end = new Date(year, month, monthStart - 1);
+  const prevLast = new Date(year, month, 0).getDate();
+  const thisLast = new Date(year, month + 1, 0).getDate();
+  const startDay = Math.min(monthStart, prevLast);
+  const endDay   = Math.min(monthStart - 1, thisLast);
+  const start = new Date(year, month - 1, startDay);
+  const end   = new Date(year, month, endDay);
   end.setHours(23, 59, 59);
   return d >= start && d <= end;
 }
