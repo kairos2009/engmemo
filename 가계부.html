@@ -739,6 +739,9 @@ html, body {
 .f-input:focus { border-color: #999; }
 .pay-btn { flex:1; padding:7px 3px; border-radius:8px; border:1.5px solid var(--border); background:var(--card); font-size:11px; color:var(--sub); cursor:pointer; white-space:nowrap; }
 .pay-btn.active { border-color:var(--blue); background:#f0f7ff; color:var(--blue); font-weight:700; }
+.day-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:8px; }
+.day-btn { padding:7px 2px; border-radius:8px; border:1.5px solid var(--border); background:var(--card); font-size:13px; font-weight:600; color:var(--text); cursor:pointer; text-align:center; }
+.day-btn.sel { background:var(--text); color:#fff; border-color:var(--text); }
 .pm-badge { font-size:10px; color:var(--sub); margin-left:3px; }
 
 .save-btn {
@@ -1270,10 +1273,8 @@ html, body {
     </div>
     <div style="padding:0 16px 4px;flex:1;overflow-y:auto;max-height:38vh;" id="recur-list"></div>
     <div style="padding:14px 16px;border-top:1px solid var(--border);flex-shrink:0">
-      <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:8px">
-        <input class="f-input" id="r-amt" type="number" placeholder="금액" inputmode="numeric">
-        <select class="f-input" id="r-day"></select>
-      </div>
+      <input class="f-input" id="r-amt" type="number" placeholder="금액" inputmode="numeric" style="margin-bottom:8px">
+      <div class="day-grid" id="r-day-grid"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
         <select class="f-input" id="r-cat"></select>
         <input class="f-input" id="r-memo" placeholder="메모">
@@ -1863,11 +1864,30 @@ function renderRecurList(){
   }).join('');
 }
 
-function renderRecurForm(){
-  const daySel = document.getElementById('r-day');
-  if(!daySel.children.length){
-    for(let d = 1; d <= 28; d++) daySel.innerHTML += '<option value="'+d+'">'+d+'일</option>';
+let recurDay = 1;
+
+function renderDayGrid(){
+  const grid = document.getElementById('r-day-grid');
+  grid.innerHTML = '';
+  for(let d = 1; d <= 31; d++){
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'day-btn' + (d === recurDay ? ' sel' : '');
+    btn.textContent = d;
+    btn.onclick = () => selRecurDay(d);
+    grid.appendChild(btn);
   }
+}
+
+function selRecurDay(d){
+  recurDay = d;
+  document.querySelectorAll('#r-day-grid .day-btn').forEach((btn, i) => {
+    btn.className = 'day-btn' + (i + 1 === d ? ' sel' : '');
+  });
+}
+
+function renderRecurForm(){
+  renderDayGrid();
   document.getElementById('r-cat').innerHTML = CATS.exp.map(c => '<option value="'+c.n+'">'+c.e+' '+c.n+'</option>').join('');
   document.getElementById('r-amt').value = '';
   document.getElementById('r-memo').value = '';
@@ -1878,7 +1898,7 @@ function saveRecur(){
   if(!amt){ alert('금액을 입력해주세요'); return; }
   const startDate = document.getElementById('r-start').value;
   if(!startDate){ alert('시작월을 선택해주세요'); return; }
-  const day = parseInt(document.getElementById('r-day').value) || 1;
+  const day = recurDay;
   const cat = document.getElementById('r-cat').value;
   const memo = document.getElementById('r-memo').value.trim();
   const endDate = document.getElementById('r-end').value || '';
@@ -1898,8 +1918,7 @@ function editRecur(id){
   if(!r) return;
   editRecurId = id;
   document.getElementById('r-amt').value = r.amount;
-  const daySel = document.getElementById('r-day');
-  if(daySel) daySel.value = r.day;
+  recurDay = r.day || 1; selRecurDay(recurDay);
   const catSel = document.getElementById('r-cat');
   if(catSel) catSel.value = r.cat;
   document.getElementById('r-memo').value = r.memo || '';
@@ -1912,6 +1931,7 @@ function editRecur(id){
 }
 function resetRecurForm(){
   editRecurId = null;
+  recurDay = 1; selRecurDay(1);
   document.getElementById('r-amt').value = '';
   document.getElementById('r-memo').value = '';
   document.getElementById('r-start').value = '';
