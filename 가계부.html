@@ -205,10 +205,8 @@ html, body {
   text-align: center;
   line-height: 1.3;
 }
-.cal-cell.is-other-month .day-num { color: #bbb !important; font-weight: 400; }
-.cal-cell.is-other-month .day-exp,
-.cal-cell.is-other-month .day-inc,
-.cal-cell.is-other-month .day-planned { opacity: 0.5; }
+.cal-cell.is-other-month { background: #f9f9f9; }
+.cal-cell.is-other-month .day-num { color: var(--sub) !important; font-size: 11px !important; }
 
 /* 하단 합계 */
 .cal-footer {
@@ -1320,7 +1318,10 @@ function renderCal(){
     if(dateStr===selDateStr)cls+=' is-selected';
     if(isOther)cls+=' is-other-month';
     el.className=cls;
-    const num=document.createElement('div');num.className='day-num';num.textContent=dayNum;el.appendChild(num);
+    const num=document.createElement('div');num.className='day-num';
+    if(isOther){ const dt2=new Date(dateStr+'T00:00:00'); num.textContent=(dt2.getMonth()+1)+'/'+dayNum; }
+    else{ num.textContent=dayNum; }
+    el.appendChild(num);
     if(byDay[dateStr]){
       if(byDay[dateStr].exp>0){const s=document.createElement('div');s.className='day-exp';s.textContent=byDay[dateStr].exp.toLocaleString();el.appendChild(s);}
       if(byDay[dateStr].inc>0){const s=document.createElement('div');s.className='day-inc';s.textContent=byDay[dateStr].inc.toLocaleString();el.appendChild(s);}
