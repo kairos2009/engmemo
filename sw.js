@@ -1,4 +1,4 @@
-const CACHE = 'gb2-v1';
+const CACHE = 'gb2-v2';
 const ASSETS = [
   './가계부.html',
   './manifest.json',
