@@ -736,6 +736,9 @@ html, body {
   outline: none;
 }
 .f-input:focus { border-color: #999; }
+.pay-btn { flex:1; padding:7px 3px; border-radius:8px; border:1.5px solid var(--border); background:var(--card); font-size:11px; color:var(--sub); cursor:pointer; white-space:nowrap; }
+.pay-btn.active { border-color:var(--blue); background:#f0f7ff; color:var(--blue); font-weight:700; }
+.pm-badge { font-size:10px; color:var(--sub); margin-left:3px; }
 
 .save-btn {
   width: calc(100% - 36px);
@@ -1141,6 +1144,11 @@ html, body {
       </div>
       <!-- 카테고리 버튼 -->
       <button class="cat-trigger" id="cat-trigger" onclick="openCatSheet()"><span class="ct-ico">🏷️</span><span class="ct-lbl">카테고리</span><span class="ct-arr">›</span></button>
+      <div id="pay-method-row" style="padding:8px 14px 0;display:flex;gap:6px">
+        <button class="pay-btn active" id="pbtn-credit" onclick="setPayMethod('credit')">💳 신용카드</button>
+        <button class="pay-btn" id="pbtn-debit" onclick="setPayMethod('debit')">🏧 체크카드</button>
+        <button class="pay-btn" id="pbtn-cash" onclick="setPayMethod('cash')">💵 현금</button>
+      </div>
       <div class="f-row" style="padding:8px 14px 0;margin-bottom:0">
         <input class="f-input" id="f-memo" placeholder="메모 (선택사항)" style="padding:9px 13px;font-size:14px">
       </div>
@@ -1337,7 +1345,7 @@ let cy=new Date().getFullYear(), cm=new Date().getMonth();
 let selDateStr=new Date().toISOString().slice(0,10);
 let sy=cy;
 let statView='monthly', scYear=cy, scMonth=cm, scType='exp';
-let mType='exp', mCat='', amtStr='', editId=null;
+let mType='exp', mCat='', amtStr='', editId=null, mPayMethod='credit';
 
 function goScr(scrId,tabId){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -1465,7 +1473,8 @@ function renderTxList(){
     const c=allCats(t.cat);
     const cls=t.type==='exp'?'exp':'inc';
     const timeStr=t.time||'';
-    h+='<div class="tx-row" onclick="openEdit('+t.id+')"><div class="tx-ico-wrap">'+c.e+'</div><div class="tx-info"><div class="tx-amt-line '+cls+'">'+WON+t.amount.toLocaleString()+'</div><div class="tx-cat">'+t.cat+'</div>'+(t.memo?'<div class="tx-memo-line">'+t.memo+'</div>':'')+'</div>'+(timeStr?'<div class="tx-time">'+timeStr+'</div>':'')+'</div>';
+    const pmIcon=t.type==='exp'&&t.payMethod?(t.payMethod==='credit'?'💳':t.payMethod==='debit'?'🏧':'💵'):'';
+    h+='<div class="tx-row" onclick="openEdit('+t.id+')"><div class="tx-ico-wrap">'+c.e+'</div><div class="tx-info"><div class="tx-amt-line '+cls+'">'+WON+t.amount.toLocaleString()+'</div><div class="tx-cat">'+t.cat+(pmIcon?'<span class="pm-badge">'+pmIcon+'</span>':'')+'</div>'+(t.memo?'<div class="tx-memo-line">'+t.memo+'</div>':'')+'</div>'+(timeStr?'<div class="tx-time">'+timeStr+'</div>':'')+'</div>';
   });
   h+='</div></div>';
   w.innerHTML=h;
@@ -1508,7 +1517,8 @@ function doSearch(){
     h+='<div class="tx-group"><div class="tx-date">'+lbl+'</div><div class="tx-card">';
     byDate[ds].forEach(t=>{
       const c=allCats(t.cat), cls=t.type==='exp'?'exp':'inc';
-      h+='<div class="tx-row" onclick="closeSearch();openEdit('+t.id+')"><div class="tx-ico-wrap">'+c.e+'</div><div class="tx-info"><div class="tx-amt-line '+cls+'">'+WON+t.amount.toLocaleString()+'</div><div class="tx-cat">'+t.cat+'</div>'+(t.memo?'<div class="tx-memo-line">'+t.memo+'</div>':'')+'</div></div>';
+      const pmIcon=t.type==='exp'&&t.payMethod?(t.payMethod==='credit'?'💳':t.payMethod==='debit'?'🏧':'💵'):'';
+      h+='<div class="tx-row" onclick="closeSearch();openEdit('+t.id+')"><div class="tx-ico-wrap">'+c.e+'</div><div class="tx-info"><div class="tx-amt-line '+cls+'">'+WON+t.amount.toLocaleString()+'</div><div class="tx-cat">'+t.cat+(pmIcon?'<span class="pm-badge">'+pmIcon+'</span>':'')+'</div>'+(t.memo?'<div class="tx-memo-line">'+t.memo+'</div>':'')+'</div></div>';
     });
     h+='</div></div>';
   });
@@ -1651,9 +1661,16 @@ function openModal(tx=null){
   mType=tx?tx.type:'exp'; mCat=tx?tx.cat:''; amtStr=tx?String(tx.amount):'';
   mSetType(mType); updAmt(); renderCatGrid();
   document.getElementById('f-memo').value=tx?tx.memo||'':'';
+  mPayMethod=(tx&&tx.payMethod)||'credit'; setPayMethod(mPayMethod);
   const defDate=tx?tx.date:selDateStr;
   document.getElementById('f-date').value=defDate;
   document.getElementById('overlay').classList.add('open');
+}
+function setPayMethod(pm){
+  mPayMethod=pm;
+  ['credit','debit','cash'].forEach(id=>{
+    document.getElementById('pbtn-'+id).className='pay-btn'+(pm===id?' active':'');
+  });
 }
 function openEdit(id){ openModal(TXS.find(t=>t.id===id)||null); }
 function bgClose(e){ if(e.target===document.getElementById('overlay'))closeModal(); }
@@ -1665,6 +1682,7 @@ function mSetType(t){
   top.className='modal-top '+(t==='exp'?'is-exp':'is-inc');
   document.getElementById('mbtn-exp').className='modal-type-btn'+(t==='exp'?' active':'');
   document.getElementById('mbtn-inc').className='modal-type-btn'+(t==='inc'?' active':'');
+  document.getElementById('pay-method-row').style.display=t==='exp'?'flex':'none';
   mCat=''; updAmt(); renderCatGrid();
 }
 function kp(k){
@@ -1713,8 +1731,9 @@ function saveTx(){
   const now=new Date(), hh=now.getHours(), mm=now.getMinutes();
   const ap=hh<12?'오전':'오후', h12=hh%12||12;
   const timeStr=ap+' '+h12+':'+String(mm).padStart(2,'0');
-  if(editId){ const i=TXS.findIndex(t=>t.id===editId); if(i!==-1)TXS[i]={...TXS[i],type:mType,amount:amt,cat:mCat,date,memo}; }
-  else TXS.push({id:Date.now(),type:mType,amount:amt,cat:mCat,date,memo,time:timeStr});
+  const payMethod=mType==='exp'?mPayMethod:undefined;
+  if(editId){ const i=TXS.findIndex(t=>t.id===editId); if(i!==-1)TXS[i]={...TXS[i],type:mType,amount:amt,cat:mCat,date,memo,payMethod}; }
+  else TXS.push({id:Date.now(),type:mType,amount:amt,cat:mCat,date,memo,time:timeStr,payMethod});
   save(); closeModal(); renderCal();
 }
 
