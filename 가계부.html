@@ -384,17 +384,8 @@ html, body {
 .stat-annual-item.inc .sa-val { color: var(--blue); }
 .stat-annual-item.exp .sa-val { color: var(--red); }
 .stat-annual-divider { width: 1px; height: 30px; background: var(--border); }
-.stat-chart-wrap { overflow-x: auto; padding: 0 14px; -webkit-overflow-scrolling: touch; }
-.stat-chart {
-  display: flex; align-items: flex-end; gap: 3px;
-  height: 150px; min-width: 100%; padding-bottom: 0;
-}
-.sc-col { display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 20px; }
-.sc-bars { display: flex; align-items: flex-end; gap: 2px; height: 120px; }
-.sc-bar { width: 9px; border-radius: 3px 3px 0 0; min-height: 2px; }
-.sc-bar.inc { background: var(--blue); opacity: 0.75; }
-.sc-bar.exp { background: var(--red); opacity: 0.75; }
-.sc-label { font-size: 9px; color: var(--sub); margin-top: 3px; white-space: nowrap; }
+.stat-chart-wrap { padding: 0 14px; }
+.stat-chart { width: 100%; }
 .stat-legend {
   display: flex; gap: 16px; justify-content: center;
   padding: 8px 0 12px; font-size: 12px; font-weight: 600;
@@ -1527,14 +1518,29 @@ function renderStat(){
   const balEl=document.getElementById('stat-ann-bal');
   balEl.textContent=(annBal>=0?'+':'')+annBal.toLocaleString()+'원';
   balEl.style.color=annBal>=0?'var(--blue)':'var(--red)';
-  // 막대 차트
+  // 선형 차트 (SVG)
   const maxVal=Math.max(...months.map(m=>Math.max(m.inc,m.exp)),1);
-  const BAR_H=120;
-  document.getElementById('stat-chart').innerHTML=months.map((m,i)=>{
-    const iH=m.inc>0?Math.max(3,Math.round(m.inc/maxVal*BAR_H)):0;
-    const eH=m.exp>0?Math.max(3,Math.round(m.exp/maxVal*BAR_H)):0;
-    return '<div class="sc-col"><div class="sc-bars"><div class="sc-bar inc" style="height:'+iH+'px"></div><div class="sc-bar exp" style="height:'+eH+'px"></div></div><div class="sc-label">'+(i+1)+'월</div></div>';
-  }).join('');
+  const W=336,H=150,PL=6,PR=6,PT=14,PB=22;
+  const cW=W-PL-PR, cH=H-PT-PB;
+  const xP=i=>PL+(cW/11)*i;
+  const yP=v=>PT+cH-(v/maxVal*cH);
+  const incPts=months.map((m,i)=>xP(i)+','+yP(m.inc)).join(' ');
+  const expPts=months.map((m,i)=>xP(i)+','+yP(m.exp)).join(' ');
+  const incArea='M'+xP(0)+','+(PT+cH)+' '+months.map((m,i)=>xP(i)+','+yP(m.inc)).join(' L')+' L'+xP(11)+','+(PT+cH)+' Z';
+  const expArea='M'+xP(0)+','+(PT+cH)+' '+months.map((m,i)=>xP(i)+','+yP(m.exp)).join(' L')+' L'+xP(11)+','+(PT+cH)+' Z';
+  const grids=[0.25,0.5,0.75,1].map(f=>'<line x1="'+PL+'" y1="'+(PT+cH*(1-f))+'" x2="'+(W-PR)+'" y2="'+(PT+cH*(1-f))+'" stroke="#e5e5e5" stroke-width="1"/>').join('');
+  const incDots=months.map((m,i)=>m.inc>0?'<circle cx="'+xP(i)+'" cy="'+yP(m.inc)+'" r="3" fill="#fff" stroke="var(--blue)" stroke-width="2"/>':'').join('');
+  const expDots=months.map((m,i)=>m.exp>0?'<circle cx="'+xP(i)+'" cy="'+yP(m.exp)+'" r="3" fill="#fff" stroke="var(--red)" stroke-width="2"/>':'').join('');
+  const lbls=months.map((m,i)=>'<text x="'+xP(i)+'" y="'+(H-5)+'" text-anchor="middle" font-size="9" fill="#aaa">'+(i+1)+'월</text>').join('');
+  document.getElementById('stat-chart').innerHTML='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;display:block">'+
+    '<defs><linearGradient id="gi" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--blue)" stop-opacity="0.15"/><stop offset="100%" stop-color="var(--blue)" stop-opacity="0"/></linearGradient>'+
+    '<linearGradient id="ge" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--red)" stop-opacity="0.12"/><stop offset="100%" stop-color="var(--red)" stop-opacity="0"/></linearGradient></defs>'+
+    grids+
+    '<path d="'+incArea+'" fill="url(#gi)"/>'+
+    '<path d="'+expArea+'" fill="url(#ge)"/>'+
+    '<polyline points="'+incPts+'" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
+    '<polyline points="'+expPts+'" fill="none" stroke="var(--red)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
+    incDots+expDots+lbls+'</svg>';
   // 월별 리스트
   const hasData=months.some(m=>m.inc>0||m.exp>0);
   const listEl=document.getElementById('stat-month-list');
