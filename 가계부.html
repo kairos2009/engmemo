@@ -416,6 +416,54 @@ html, body {
 .sml-inc { font-size: 12px; color: var(--blue); font-weight: 600; }
 .sml-exp { font-size: 12px; color: var(--red); font-weight: 600; }
 .sml-bal { font-size: 13px; font-weight: 700; }
+/* 통계 뷰 토글 */
+.stat-view-seg {
+  display: flex; margin: 0 14px 12px;
+  background: var(--border); border-radius: 10px; padding: 3px;
+}
+.stat-view-seg button {
+  flex: 1; padding: 7px; border: none; background: none; border-radius: 8px;
+  font-size: 13px; font-weight: 600; cursor: pointer; color: var(--sub); font-family: inherit;
+}
+.stat-view-seg button.active { background: var(--card); color: var(--text); box-shadow: var(--shadow); }
+/* 카테고리 뷰 */
+.stat-cat-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 14px 10px; gap: 10px;
+}
+.stat-cat-month {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 15px; font-weight: 700; color: var(--text);
+}
+.stat-cat-month button { background: none; border: none; font-size: 22px; color: var(--sub); cursor: pointer; line-height: 1; }
+.stat-type-seg {
+  display: flex; background: var(--border); border-radius: 8px; padding: 2px;
+}
+.stat-type-seg button {
+  padding: 5px 12px; border: none; background: none; border-radius: 6px;
+  font-size: 12px; font-weight: 600; cursor: pointer; color: var(--sub); font-family: inherit;
+}
+.stat-type-seg button.active.exp { background: var(--card); color: var(--red); box-shadow: var(--shadow); }
+.stat-type-seg button.active.inc { background: var(--card); color: var(--blue); box-shadow: var(--shadow); }
+.stat-cat-total {
+  text-align: center; padding: 0 18px 12px;
+  font-size: 12px; color: var(--sub);
+}
+.stat-cat-total b { display: block; font-size: 22px; font-weight: 800; margin-top: 2px; }
+.stat-cat-rows { padding: 0 14px; display: flex; flex-direction: column; gap: 8px; padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+.scr-row {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 11px 14px; display: flex; align-items: center; gap: 10px;
+}
+.scr-ico { font-size: 20px; width: 32px; text-align: center; flex-shrink: 0; }
+.scr-body { flex: 1; min-width: 0; }
+.scr-name-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+.scr-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.scr-bar-bg { height: 4px; background: var(--border); border-radius: 99px; overflow: hidden; margin-bottom: 3px; }
+.scr-bar-fill { height: 100%; border-radius: 99px; }
+.scr-right { text-align: right; flex-shrink: 0; }
+.scr-amt { font-size: 13px; font-weight: 700; }
+.scr-pct { font-size: 11px; color: var(--sub); }
 
 /* ─── 설정 ─── */
 .set-group { margin: 14px 18px 0; }
@@ -927,30 +975,54 @@ html, body {
     <span id="stat-year-title">2025년</span>
     <button onclick="statYearShift(1)">&#8250;</button>
   </div>
-  <div class="stat-annual">
-    <div class="stat-annual-item inc">
-      <span class="sa-lbl">연간 수입</span>
-      <span class="sa-val" id="stat-ann-inc">0원</span>
-    </div>
-    <div class="stat-annual-divider"></div>
-    <div class="stat-annual-item exp">
-      <span class="sa-lbl">연간 지출</span>
-      <span class="sa-val" id="stat-ann-exp">0원</span>
-    </div>
-    <div class="stat-annual-divider"></div>
-    <div class="stat-annual-item">
-      <span class="sa-lbl">잔액</span>
-      <span class="sa-val" id="stat-ann-bal">0원</span>
-    </div>
+  <!-- 뷰 토글 -->
+  <div class="stat-view-seg">
+    <button id="svs-monthly" class="active" onclick="setStatView('monthly')">월별</button>
+    <button id="svs-cat" onclick="setStatView('cat')">카테고리</button>
   </div>
-  <div class="stat-chart-wrap">
-    <div class="stat-chart" id="stat-chart"></div>
+  <!-- 월별 뷰 -->
+  <div id="stat-view-monthly">
+    <div class="stat-annual">
+      <div class="stat-annual-item inc">
+        <span class="sa-lbl">연간 수입</span>
+        <span class="sa-val" id="stat-ann-inc">0원</span>
+      </div>
+      <div class="stat-annual-divider"></div>
+      <div class="stat-annual-item exp">
+        <span class="sa-lbl">연간 지출</span>
+        <span class="sa-val" id="stat-ann-exp">0원</span>
+      </div>
+      <div class="stat-annual-divider"></div>
+      <div class="stat-annual-item">
+        <span class="sa-lbl">잔액</span>
+        <span class="sa-val" id="stat-ann-bal">0원</span>
+      </div>
+    </div>
+    <div class="stat-chart-wrap">
+      <div class="stat-chart" id="stat-chart"></div>
+    </div>
+    <div class="stat-legend">
+      <span class="sl-inc">■ 수입</span>
+      <span class="sl-exp">■ 지출</span>
+    </div>
+    <div class="stat-month-list" id="stat-month-list"></div>
   </div>
-  <div class="stat-legend">
-    <span class="sl-inc">■ 수입</span>
-    <span class="sl-exp">■ 지출</span>
+  <!-- 카테고리 뷰 -->
+  <div id="stat-view-cat" style="display:none">
+    <div class="stat-cat-nav">
+      <div class="stat-cat-month">
+        <button onclick="statCatShift(-1)">&#8249;</button>
+        <span id="stat-cat-title"></span>
+        <button onclick="statCatShift(1)">&#8250;</button>
+      </div>
+      <div class="stat-type-seg">
+        <button id="sct-exp" class="active exp" onclick="setStatCatType('exp')">지출</button>
+        <button id="sct-inc" onclick="setStatCatType('inc')">수입</button>
+      </div>
+    </div>
+    <div class="stat-cat-total"><span id="stat-cat-label">지출 합계</span> <b id="stat-cat-total-b" style="color:var(--red)">0원</b></div>
+    <div class="stat-cat-rows" id="stat-cat-rows"></div>
   </div>
-  <div class="stat-month-list" id="stat-month-list"></div>
 </div>
 
 <!-- 설정 화면 -->
@@ -1257,6 +1329,7 @@ function save(){ try{ localStorage.setItem('gb2',JSON.stringify(TXS)); }catch(e)
 let cy=new Date().getFullYear(), cm=new Date().getMonth();
 let selDateStr=new Date().toISOString().slice(0,10);
 let sy=cy;
+let statView='monthly', scYear=cy, scMonth=cm, scType='exp';
 let mType='exp', mCat='', amtStr='', editId=null;
 
 function goScr(scrId,tabId){
@@ -1437,10 +1510,10 @@ function doSearch(){
 
 function renderStat(){
   document.getElementById('stat-year-title').textContent=sy+'년';
-  // 월별 합계 계산 (1~12월)
+  // 월별 합계 계산 (1~12월) — monthStart 연동
   const months=[];
   for(let m=0;m<12;m++){
-    const txs=TXS.filter(t=>{const d=new Date(t.date);return d.getFullYear()===sy&&d.getMonth()===m;});
+    const txs=TXS.filter(t=>inMonthRange(t.date,sy,m));
     const inc=txs.filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0);
     const exp=txs.filter(t=>t.type==='exp').reduce((s,t)=>s+t.amount,0);
     months.push({inc,exp});
@@ -1474,6 +1547,61 @@ function renderStat(){
   }).filter(Boolean).join('');
 }
 function statYearShift(d){ sy+=d; renderStat(); }
+
+function setStatView(view){
+  statView=view;
+  document.getElementById('svs-monthly').className=(view==='monthly'?'active':'');
+  document.getElementById('svs-cat').className=(view==='cat'?'active':'');
+  document.getElementById('stat-view-monthly').style.display=view==='monthly'?'':'none';
+  document.getElementById('stat-view-cat').style.display=view==='cat'?'':'none';
+  if(view==='cat'){ scYear=sy; scMonth=cm; renderStatCat(); }
+}
+
+function statCatMonthLabel(year,month){
+  if(monthStart===1) return year+'년 '+(month+1)+'월';
+  const sd=new Date(year,month-1,monthStart);
+  const ed=new Date(year,month,monthStart-1);
+  return year+'년 '+(month+1)+'월 ('+(sd.getMonth()+1)+'/'+sd.getDate()+'~'+(ed.getMonth()+1)+'/'+ed.getDate()+')';
+}
+
+function renderStatCat(){
+  document.getElementById('stat-cat-title').textContent=statCatMonthLabel(scYear,scMonth);
+  const isExp=scType==='exp';
+  document.getElementById('stat-cat-label').textContent=isExp?'지출 합계':'수입 합계';
+  document.getElementById('stat-cat-total-b').style.color=isExp?'var(--red)':'var(--blue)';
+  const txs=TXS.filter(t=>t.type===scType&&inMonthRange(t.date,scYear,scMonth));
+  const total=txs.reduce((s,t)=>s+t.amount,0);
+  document.getElementById('stat-cat-total-b').textContent=total.toLocaleString()+'원';
+  // 카테고리별 집계
+  const map={};
+  txs.forEach(t=>{
+    if(!map[t.cat]) map[t.cat]=0;
+    map[t.cat]+=t.amount;
+  });
+  const rows=Object.entries(map).sort((a,b)=>b[1]-a[1]);
+  const rowEl=document.getElementById('stat-cat-rows');
+  if(!rows.length){ rowEl.innerHTML='<div class="empty"><div class="empty-ico">📊</div>내역이 없어요</div>'; return; }
+  rowEl.innerHTML=rows.map(([cat,amt])=>{
+    const ci=allCats(cat);
+    const pct=total>0?Math.round(amt/total*100):0;
+    const fillColor=isExp?'var(--red)':'var(--blue)';
+    return '<div class="scr-row"><div class="scr-ico">'+ci.e+'</div><div class="scr-body"><div class="scr-name-row"><span class="scr-name">'+cat+'</span><span class="scr-amt" style="color:'+fillColor+'">'+amt.toLocaleString()+'원</span></div><div class="scr-bar-bg"><div class="scr-bar-fill" style="width:'+pct+'%;background:'+fillColor+'"></div></div><div class="scr-pct">'+pct+'%</div></div></div>';
+  }).join('');
+}
+
+function statCatShift(d){
+  scMonth+=d;
+  if(scMonth<0){ scMonth=11; scYear--; }
+  if(scMonth>11){ scMonth=0; scYear++; }
+  renderStatCat();
+}
+
+function setStatCatType(type){
+  scType=type;
+  document.getElementById('sct-exp').className=(type==='exp'?'active exp':'');
+  document.getElementById('sct-inc').className=(type==='inc'?'active inc':'');
+  renderStatCat();
+}
 
 function openModal(tx=null){
   editId=tx?tx.id:null;
