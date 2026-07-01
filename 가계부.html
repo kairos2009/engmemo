@@ -294,6 +294,7 @@ html, body {
 }
 .tx-row:not(:last-child) { border-bottom: 1px solid var(--border); }
 .tx-row:active { background: #fafafa; }
+.tx-row.pressing { background: #fff0f0 !important; }
 .tx-ico-wrap {
   width: 32px; height: 32px;
   border-radius: 50%;
@@ -1472,7 +1473,7 @@ function renderTxList(){
     const cls=t.type==='exp'?'exp':'inc';
     const timeStr=t.time||'';
     const pmIcon=t.type==='exp'&&t.payMethod?(t.payMethod==='credit'?'💳':t.payMethod==='debit'?'🏧':'💵'):'';
-    h+='<div class="tx-row" onclick="openEdit('+t.id+')"><div class="tx-ico-wrap">'+c.e+'</div><div class="tx-info"><div class="tx-amt-line '+cls+'">'+WON+t.amount.toLocaleString()+'</div><div class="tx-cat">'+t.cat+(pmIcon?'<span class="pm-badge">'+pmIcon+'</span>':'')+'</div>'+(t.memo?'<div class="tx-memo-line">'+t.memo+'</div>':'')+'</div>'+(timeStr?'<div class="tx-time">'+timeStr+'</div>':'')+'</div>';
+    h+='<div class="tx-row" data-id="'+t.id+'" onclick="txTap('+t.id+')"><div class="tx-ico-wrap">'+c.e+'</div><div class="tx-info"><div class="tx-amt-line '+cls+'">'+WON+t.amount.toLocaleString()+'</div><div class="tx-cat">'+t.cat+(pmIcon?'<span class="pm-badge">'+pmIcon+'</span>':'')+'</div>'+(t.memo?'<div class="tx-memo-line">'+t.memo+'</div>':'')+'</div>'+(timeStr?'<div class="tx-time">'+timeStr+'</div>':'')+'</div>';
   });
   h+='</div></div>';
   w.innerHTML=h;
@@ -1516,7 +1517,7 @@ function doSearch(){
     byDate[ds].forEach(t=>{
       const c=allCats(t.cat), cls=t.type==='exp'?'exp':'inc';
       const pmIcon=t.type==='exp'&&t.payMethod?(t.payMethod==='credit'?'💳':t.payMethod==='debit'?'🏧':'💵'):'';
-      h+='<div class="tx-row" onclick="closeSearch();openEdit('+t.id+')"><div class="tx-ico-wrap">'+c.e+'</div><div class="tx-info"><div class="tx-amt-line '+cls+'">'+WON+t.amount.toLocaleString()+'</div><div class="tx-cat">'+t.cat+(pmIcon?'<span class="pm-badge">'+pmIcon+'</span>':'')+'</div>'+(t.memo?'<div class="tx-memo-line">'+t.memo+'</div>':'')+'</div></div>';
+      h+='<div class="tx-row" data-id="'+t.id+'" onclick="txTapSearch('+t.id+')"><div class="tx-ico-wrap">'+c.e+'</div><div class="tx-info"><div class="tx-amt-line '+cls+'">'+WON+t.amount.toLocaleString()+'</div><div class="tx-cat">'+t.cat+(pmIcon?'<span class="pm-badge">'+pmIcon+'</span>':'')+'</div>'+(t.memo?'<div class="tx-memo-line">'+t.memo+'</div>':'')+'</div></div>';
     });
     h+='</div></div>';
   });
@@ -1652,6 +1653,43 @@ function setStatCatType(type){
   document.getElementById('sct-exp').className=(type==='exp'?'active exp':'');
   document.getElementById('sct-inc').className=(type==='inc'?'active inc':'');
   renderStatCat();
+}
+
+// ─── 거래 탭·길게누르기 삭제 ───
+let lpTimer=null, lpFired=false, lpStartX=0, lpStartY=0;
+
+function txTap(id){ if(lpFired){lpFired=false;return;} openEdit(id); }
+function txTapSearch(id){ if(lpFired){lpFired=false;return;} closeSearch(); openEdit(id); }
+
+function deleteTx(id){
+  if(!confirm('이 내역을 삭제할까요?')) return;
+  TXS=TXS.filter(t=>t.id!==id);
+  save(); renderCal();
+  if(document.getElementById('search-overlay').classList.contains('open')) doSearch();
+}
+
+function setupLongPress(container){
+  container.addEventListener('touchstart', e=>{
+    const row=e.target.closest('.tx-row'); if(!row) return;
+    const id=Number(row.dataset.id);
+    const touch=e.touches[0];
+    lpStartX=touch.clientX; lpStartY=touch.clientY;
+    lpTimer=setTimeout(()=>{
+      lpTimer=null; lpFired=true;
+      row.classList.add('pressing');
+      if(navigator.vibrate) navigator.vibrate(40);
+      setTimeout(()=>row.classList.remove('pressing'),300);
+      deleteTx(id);
+    },500);
+  },{passive:true});
+  container.addEventListener('touchmove', e=>{
+    if(!lpTimer) return;
+    const touch=e.touches[0];
+    if(Math.abs(touch.clientX-lpStartX)>8||Math.abs(touch.clientY-lpStartY)>8){
+      clearTimeout(lpTimer); lpTimer=null;
+    }
+  },{passive:true});
+  container.addEventListener('touchend',()=>{ if(lpTimer){clearTimeout(lpTimer);lpTimer=null;} });
 }
 
 function openModal(tx=null){
@@ -2336,6 +2374,8 @@ document.addEventListener('DOMContentLoaded',function(){
   applyRecurring();
   renderCal();
   syncMsLabel();
+  setupLongPress(document.getElementById('tx-wrap'));
+  setupLongPress(document.getElementById('search-results'));
 });
 
 if ('serviceWorker' in navigator) {
