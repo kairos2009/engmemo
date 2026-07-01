@@ -1386,9 +1386,7 @@ function renderCal(){
       if(r.endDate&&mStr>r.endDate) return;
       const key=r.id+'_'+mStr;
       if(RECUR_LOG[key]) return;
-      const maxD=new Date(yy,mm+1,0).getDate();
-      const day=Math.min(r.day,maxD);
-      const ds=yy+'-'+String(mm+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+      const ds=recurDateStr(yy, mm, r.day);
       if(!inMonthRange(ds,cy,cm)) return;
       if(!byDayPlanned[ds])byDayPlanned[ds]={exp:0,inc:0};
       if(r.type==='exp')byDayPlanned[ds].exp+=r.amount; else byDayPlanned[ds].inc+=r.amount;
@@ -1897,6 +1895,15 @@ function toggleRecurActive(id){
   if(r){ r.active = !r.active; saveRecurs(); renderRecurList(); if(r.active) applyRecurring(); }
 }
 
+function recurDateStr(y, m, rDay){
+  const maxDay = new Date(y, m+1, 0).getDate();
+  const date = new Date(y, m, Math.min(rDay, maxDay));
+  const dow = date.getDay();
+  if(dow === 6) date.setDate(date.getDate() + 2); // 토 → 월
+  else if(dow === 0) date.setDate(date.getDate() + 1); // 일 → 월
+  return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
+}
+
 function applyRecurring(){
   if(!RECURS.length) return;
   const today = new Date();
@@ -1913,9 +1920,7 @@ function applyRecurring(){
       const monthStr = y + '-' + String(m+1).padStart(2,'0');
       const key = r.id + '_' + monthStr;
       if(!RECUR_LOG[key]){
-        const maxDay = new Date(y, m+1, 0).getDate();
-        const day = Math.min(r.day, maxDay);
-        const dateStr = y+'-'+String(m+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+        const dateStr = recurDateStr(y, m, r.day);
         TXS.push({ id: Date.now()+Math.random(), type:r.type, amount:r.amount, cat:r.cat,
           date:dateStr, memo:(r.memo?r.memo+' ':'')+'(고정)', time:'', recurId:r.id });
         RECUR_LOG[key] = true;
