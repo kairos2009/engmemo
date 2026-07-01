@@ -1904,6 +1904,22 @@ function recurDateStr(y, m, rDay){
   return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
 }
 
+function fixRecurWeekends(){
+  let changed = false;
+  TXS.forEach(t => {
+    if(!t.recurId) return;
+    const r = RECURS.find(rv => rv.id === t.recurId);
+    if(!r) return;
+    const d = new Date(t.date + 'T00:00:00');
+    const dow = d.getDay();
+    if(dow === 0 || dow === 6){
+      const correct = recurDateStr(d.getFullYear(), d.getMonth(), r.day);
+      if(correct !== t.date){ t.date = correct; changed = true; }
+    }
+  });
+  if(changed) save();
+}
+
 function applyRecurring(){
   if(!RECURS.length) return;
   const today = new Date();
@@ -2316,6 +2332,7 @@ function resetAll(){
 }
 
 document.addEventListener('DOMContentLoaded',function(){
+  fixRecurWeekends();
   applyRecurring();
   renderCal();
   syncMsLabel();
