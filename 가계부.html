@@ -737,8 +737,13 @@ html, body {
   border-radius: 50%; background: var(--red);
   color: #fff; border: 2px solid #fff; cursor: pointer;
   font-size: 12px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
+  display: none; align-items: center; justify-content: center;
   z-index: 2; line-height: 1;
+}
+.cm-cat-item.del-mode .cm-del { display: flex; }
+.cm-cat-item.del-mode { border-color: #ffaaaa; animation: shake .3s; }
+@keyframes shake {
+  0%,100%{transform:rotate(0)} 25%{transform:rotate(-2deg)} 75%{transform:rotate(2deg)}
 }
 
 /* 추가 영역 */
@@ -1591,10 +1596,31 @@ function renderCatManageList(){
     '</div>'
   ).join('');
 
+  let lpTimer = null;
+
+  wrap.querySelectorAll('.cm-cat-item').forEach(el => {
+    el.addEventListener('pointerdown', e => {
+      if (e.target.closest('.cm-del')) return;
+      lpTimer = setTimeout(() => {
+        if (navigator.vibrate) navigator.vibrate(40);
+        wrap.querySelectorAll('.cm-cat-item').forEach(x => x.classList.remove('del-mode'));
+        el.classList.add('del-mode');
+      }, 500);
+    });
+    const cancelLp = () => clearTimeout(lpTimer);
+    el.addEventListener('pointerup', cancelLp);
+    el.addEventListener('pointercancel', cancelLp);
+    el.addEventListener('pointermove', cancelLp);
+    el.addEventListener('click', e => {
+      if (!e.target.closest('.cm-del')) el.classList.remove('del-mode');
+    });
+  });
+
   wrap.querySelectorAll('.cm-del').forEach(btn => {
     const i = parseInt(btn.dataset.idx);
-    btn.addEventListener('click', e => { e.stopPropagation(); confirmDel(i); });
-    btn.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); confirmDel(i); }, {passive:false});
+    const del = e => { e.stopPropagation(); confirmDel(i); };
+    btn.addEventListener('click', del);
+    btn.addEventListener('touchend', e => { e.preventDefault(); del(e); }, {passive:false});
   });
 }
 
