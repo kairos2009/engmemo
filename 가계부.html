@@ -2,8 +2,12 @@
 <html lang="ko" style="background:#ffffff;">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="color-scheme" content="light">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="가계부">
+<meta name="mobile-web-app-capable" content="yes">
 <title>가계부</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -35,7 +39,7 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-.screen { display: none; min-height: 100vh; padding-bottom: 72px; background: #ffffff; }
+.screen { display: none; min-height: 100vh; padding-bottom: calc(72px + env(safe-area-inset-bottom)); background: #ffffff; }
 .screen.active { display: block; }
 
 /* ─── 탑바 ─── */
@@ -307,7 +311,8 @@ html, body {
 .tabbar {
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  height: 60px;
+  height: calc(60px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
   background: var(--card);
   border-top: 1px solid var(--border);
   display: flex;
@@ -334,7 +339,7 @@ html, body {
 /* ─── FAB ─── */
 .fab {
   position: fixed;
-  bottom: 76px; right: 18px;
+  bottom: calc(76px + env(safe-area-inset-bottom)); right: 18px;
   width: 50px; height: 50px;
   border-radius: 50%;
   background: var(--text);
@@ -511,7 +516,7 @@ html, body {
 }
 
 /* 키패드 영역 */
-.modal-body { padding: 0 0 24px; }
+.modal-body { padding: 0 0 calc(24px + env(safe-area-inset-bottom)); }
 .keypad {
   display: grid;
   grid-template-columns: repeat(3,1fr);
