@@ -8,6 +8,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="가계부">
 <meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#2b7cc1">
 <title>가계부</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -798,6 +801,23 @@ html, body {
 }
 .ep-grid button:active { background: #f0f0f0; }
 .ep-grid button.picked { background: #e0e0e0; }
+
+/* ─── 반복관리 / 설정 추가 ─── */
+.mode-seg-btn {
+  padding: 9px; border: 1.5px solid var(--border); border-radius: 8px;
+  background: none; cursor: pointer; font-family: inherit; font-size: 13px; color: var(--sub);
+}
+.mode-seg-btn.active { border-color: var(--text); background: var(--text); color: #fff; }
+.recur-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.recur-item:last-child { border-bottom: none; }
+.ms-day-btn {
+  padding: 10px 2px; border-radius: 8px; border: 1.5px solid var(--border);
+  background: none; color: var(--text); font-size: 13px; font-family: inherit; cursor: pointer;
+}
+.ms-day-btn.sel { border-color: var(--text); background: var(--text); color: #fff; }
 </style>
 </head>
 <body>
@@ -844,7 +864,7 @@ html, body {
     </div>
     <div class="sm2-right">
       <div>월간 합계 <span id="s-mon">0원</span></div>
-      <div>연간 합계 <span id="s-yr">0원</span></div>
+      <div id="yr-row">연간 합계 <span id="s-yr">0원</span></div>
     </div>
   </div>
 
@@ -890,21 +910,21 @@ html, body {
 
   <div class="set-group">
     <div class="set-card">
-      <div class="set-row" onclick="toggleAlarm()"><span class="set-ico">🔔</span><span class="set-lbl">알림</span><div class="toggle" id="tog-alarm"></div></div>
+      <div class="set-row" onclick="openCatManage('inc')"><span class="set-ico">💰</span><span class="set-lbl">수입 카테고리</span><span class="set-arr">›</span></div>
+      <div class="set-row" onclick="openCatManage('exp')"><span class="set-ico">💸</span><span class="set-lbl">지출 카테고리</span><span class="set-arr">›</span></div>
+      <div class="set-row" onclick="openRecurModal()"><span class="set-ico">🔄</span><span class="set-lbl">반복 관리</span><span class="set-arr">›</span></div>
+      <div class="set-row" onclick="openMonthStartModal()">
+        <span class="set-ico">📅</span><span class="set-lbl">월 시작일자</span>
+        <div style="display:flex;align-items:center;gap:4px;margin-left:auto">
+          <span id="ms-label" style="font-size:13px;color:var(--sub)">1일</span>
+          <span class="set-arr">›</span>
+        </div>
+      </div>
+      <div class="set-row" onclick="togYrSwitch()"><span class="set-ico">📆</span><span class="set-lbl">연간 합계 표시</span><div class="toggle on" id="tog-yr"></div></div>
     </div>
   </div>
   <div class="set-group">
     <div class="set-card">
-      <div class="set-row" onclick="openCatManage('inc')"><span class="set-ico">↑</span><span class="set-lbl">수입 카테고리</span><span class="set-arr">›</span></div>
-      <div class="set-row" onclick="openCatManage('exp')"><span class="set-ico">↓</span><span class="set-lbl">지출 카테고리</span><span class="set-arr">›</span></div>
-      <div class="set-row" onclick="alert('반복 관리 기능은 준비 중이에요')"><span class="set-ico">🔄</span><span class="set-lbl">반복 관리</span><span class="set-arr">›</span></div>
-      <div class="set-row" onclick="alert('월 시작일자 설정 기능은 준비 중이에요')"><span class="set-ico">📅</span><span class="set-lbl">월 시작일자</span><span class="set-arr">›</span></div>
-      <div class="set-row"><span class="set-ico">📆</span><span class="set-lbl">연간 합계 표시</span><div class="toggle on" id="tog-yr" onclick="togSwitch(this)"></div></div>
-    </div>
-  </div>
-  <div class="set-group">
-    <div class="set-card">
-      <div class="set-row"><span class="set-ico">🔒</span><span class="set-lbl">화면 잠금</span><span class="set-arr">›</span></div>
       <div class="set-row" onclick="openBackupModal()"><span class="set-ico">💾</span><span class="set-lbl">수동 백업 / 복원</span><span class="set-arr">›</span></div>
       <div class="set-row" onclick="clearAll()"><span class="set-ico">🗑️</span><span class="set-lbl" style="color:var(--red)">전체 데이터 삭제</span><span class="set-arr" style="color:var(--red)">›</span></div>
     </div>
@@ -1088,6 +1108,50 @@ html, body {
   </div>
 </div>
 
+<!-- 반복 관리 모달 -->
+<div class="overlay" id="recur-overlay" onclick="recurBgClose(event)">
+  <div class="sheet cm-sheet">
+    <div class="handle"></div>
+    <div class="cm-header">
+      <button class="modal-close-btn-dark" onclick="closeRecurModal()">✕</button>
+      <span class="cat-manage-title">반복 관리</span>
+      <div style="width:30px"></div>
+    </div>
+    <div style="padding:0 16px 4px;flex:1;overflow-y:auto;max-height:40vh;" id="recur-list"></div>
+    <div style="padding:14px 16px;border-top:1px solid var(--border);flex-shrink:0">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <button class="mode-seg-btn active" id="rseg-exp" onclick="rSetType('exp')">지출</button>
+        <button class="mode-seg-btn" id="rseg-inc" onclick="rSetType('inc')">수입</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <input class="f-input" id="r-amt" type="number" placeholder="금액" inputmode="numeric">
+        <select class="f-input" id="r-day"></select>
+      </div>
+      <select class="f-input" id="r-cat" style="width:100%;margin-bottom:8px"></select>
+      <input class="f-input" id="r-memo" placeholder="메모 (선택사항)" style="width:100%;margin-bottom:10px">
+      <button class="save-btn" style="margin:0;width:100%" onclick="addRecur()">반복 추가</button>
+    </div>
+    <div style="height:env(safe-area-inset-bottom)"></div>
+  </div>
+</div>
+
+<!-- 월 시작일자 모달 -->
+<div class="overlay" id="ms-overlay" onclick="msBgClose(event)">
+  <div class="sheet" style="padding-bottom:0">
+    <div class="handle"></div>
+    <div class="cm-header">
+      <button class="modal-close-btn-dark" onclick="closeMsModal()">✕</button>
+      <span class="cat-manage-title">월 시작일자</span>
+      <div style="width:30px"></div>
+    </div>
+    <div style="padding:10px 18px 6px;font-size:13px;color:var(--sub);line-height:1.6">
+      설정한 날짜부터 다음달 전날까지를 한 달로 계산해요.<br>예: 25일 설정 → 전달 25일 ~ 이번달 24일
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:10px 16px 24px" id="ms-grid"></div>
+    <div style="height:env(safe-area-inset-bottom)"></div>
+  </div>
+</div>
+
 <script>
 const DEFAULT_CATS = {
   exp: [
@@ -1139,7 +1203,7 @@ function renderCal(){
       if(t.type==='inc')byDay[k].inc+=t.amount; else byDay[k].exp+=t.amount;
     }
   });
-  const mon=TXS.filter(t=>{const d=new Date(t.date);return d.getFullYear()===cy&&d.getMonth()===cm;});
+  const mon=TXS.filter(t=>inMonthRange(t.date,cy,cm));
   const yr=TXS.filter(t=>new Date(t.date).getFullYear()===cy);
   const mI=mon.filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0);
   const mE=mon.filter(t=>t.type==='exp').reduce((s,t)=>s+t.amount,0);
@@ -1314,45 +1378,164 @@ function saveTx(){
   save(); closeModal(); renderCal();
 }
 
-function togSwitch(el){ el.classList.toggle('on'); }
+// ─── 설정 상태 ───
+let showYr = localStorage.getItem('gb2_yr') !== 'off';
+let monthStart = parseInt(localStorage.getItem('gb2_ms') || '1');
+let RECURS = [];
+let RECUR_LOG = {};
+try { RECURS = JSON.parse(localStorage.getItem('gb2_recur') || '[]'); } catch(e){}
+try { RECUR_LOG = JSON.parse(localStorage.getItem('gb2_rlog') || '{}'); } catch(e){}
+function saveRecurs(){ try{ localStorage.setItem('gb2_recur', JSON.stringify(RECURS)); }catch(e){} }
+function saveRecurLog(){ try{ localStorage.setItem('gb2_rlog', JSON.stringify(RECUR_LOG)); }catch(e){} }
 
-// ─── 알림 기능 ───
-let alarmOn = localStorage.getItem('gb2_alarm') === 'on';
-function syncAlarmToggle(){
-  const t = document.getElementById('tog-alarm');
-  if(t) t.classList.toggle('on', alarmOn);
+// ─── 연간 합계 토글 ───
+function syncYrToggle(){
+  const tog = document.getElementById('tog-yr');
+  if(tog) tog.classList.toggle('on', showYr);
+  const row = document.getElementById('yr-row');
+  if(row) row.style.display = showYr ? '' : 'none';
 }
-function toggleAlarm(){
-  if(!alarmOn){
-    // 켜는 경우: 권한 요청
-    if(!('Notification' in window)){
-      alert('이 브라우저는 알림 기능을 지원하지 않아요.');
-      return;
-    }
-    if(Notification.permission === 'granted'){
-      alarmOn = true;
-      localStorage.setItem('gb2_alarm','on');
-      syncAlarmToggle();
-      new Notification('가계부 알림', { body: '알림이 켜졌어요. 매일 기록을 잊지 마세요!' });
-    } else if(Notification.permission === 'denied'){
-      alert('알림 권한이 차단되어 있어요.\\n기기/브라우저 설정에서 알림 권한을 허용해주세요.');
-    } else {
-      Notification.requestPermission().then(perm=>{
-        if(perm === 'granted'){
-          alarmOn = true;
-          localStorage.setItem('gb2_alarm','on');
-          syncAlarmToggle();
-          new Notification('가계부 알림', { body: '알림이 켜졌어요. 매일 기록을 잊지 마세요!' });
-        } else {
-          alert('알림 권한이 거부되었어요.');
-        }
-      });
-    }
-  } else {
-    alarmOn = false;
-    localStorage.setItem('gb2_alarm','off');
-    syncAlarmToggle();
+function togYrSwitch(){
+  showYr = !showYr;
+  localStorage.setItem('gb2_yr', showYr ? 'on' : 'off');
+  syncYrToggle();
+}
+
+// ─── 월 시작일자 ───
+function syncMsLabel(){
+  const el = document.getElementById('ms-label');
+  if(el) el.textContent = monthStart + '일';
+}
+function openMonthStartModal(){
+  const g = document.getElementById('ms-grid');
+  g.innerHTML = '';
+  for(let d = 1; d <= 28; d++){
+    const btn = document.createElement('button');
+    btn.className = 'ms-day-btn' + (d === monthStart ? ' sel' : '');
+    btn.textContent = d;
+    btn.onclick = () => setMonthStart(d);
+    g.appendChild(btn);
   }
+  document.getElementById('ms-overlay').classList.add('open');
+}
+function setMonthStart(d){
+  monthStart = d;
+  localStorage.setItem('gb2_ms', String(d));
+  syncMsLabel();
+  closeMsModal();
+  renderCal();
+}
+function closeMsModal(){ document.getElementById('ms-overlay').classList.remove('open'); }
+function msBgClose(e){ if(e.target === document.getElementById('ms-overlay')) closeMsModal(); }
+
+// ─── 월 범위 (monthStart 반영) ───
+function inMonthRange(dateStr, year, month){
+  const d = new Date(dateStr + 'T00:00:00');
+  if(monthStart === 1) return d.getFullYear() === year && d.getMonth() === month;
+  const start = new Date(year, month - 1, monthStart);
+  const end = new Date(year, month, monthStart - 1);
+  end.setHours(23, 59, 59);
+  return d >= start && d <= end;
+}
+
+// ─── 반복 관리 ───
+let rType = 'exp';
+
+function openRecurModal(){
+  rType = 'exp';
+  renderRecurForm();
+  renderRecurList();
+  document.getElementById('recur-overlay').classList.add('open');
+}
+function closeRecurModal(){ document.getElementById('recur-overlay').classList.remove('open'); }
+function recurBgClose(e){ if(e.target === document.getElementById('recur-overlay')) closeRecurModal(); }
+
+function renderRecurList(){
+  const wrap = document.getElementById('recur-list');
+  if(!RECURS.length){
+    wrap.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--sub);font-size:13px">반복 내역이 없어요</div>';
+    return;
+  }
+  wrap.innerHTML = RECURS.map(r => {
+    const c = allCats(r.cat);
+    const amtColor = r.type === 'exp' ? 'var(--red)' : 'var(--blue)';
+    const sign = r.type === 'exp' ? '-' : '+';
+    return '<div class="recur-item" style="opacity:'+(r.active?1:0.4)+'">'+
+      '<div style="font-size:20px;width:30px;text-align:center;flex-shrink:0">'+c.e+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:13px;font-weight:600;color:var(--text)">'+r.cat+(r.memo?' · '+r.memo:'')+'</div>'+
+        '<div style="font-size:11px;color:var(--sub);margin-top:2px">매월 '+r.day+'일</div>'+
+      '</div>'+
+      '<div style="color:'+amtColor+';font-size:13px;font-weight:700;margin-right:8px;flex-shrink:0">'+sign+r.amount.toLocaleString()+'원</div>'+
+      '<div class="toggle '+(r.active?'on':'')+'" style="flex-shrink:0" onclick="toggleRecurActive('+r.id+')"></div>'+
+      '<button style="background:none;border:none;color:var(--sub);font-size:20px;cursor:pointer;padding:2px 2px 2px 8px;line-height:1" onclick="deleteRecur('+r.id+')">×</button>'+
+    '</div>';
+  }).join('');
+}
+
+function renderRecurForm(){
+  document.getElementById('rseg-exp').className = 'mode-seg-btn' + (rType === 'exp' ? ' active' : '');
+  document.getElementById('rseg-inc').className = 'mode-seg-btn' + (rType === 'inc' ? ' active' : '');
+  const daySel = document.getElementById('r-day');
+  if(!daySel.children.length){
+    for(let d = 1; d <= 28; d++) daySel.innerHTML += '<option value="'+d+'">'+d+'일</option>';
+  }
+  document.getElementById('r-cat').innerHTML = CATS[rType].map(c => '<option value="'+c.n+'">'+c.e+' '+c.n+'</option>').join('');
+  document.getElementById('r-amt').value = '';
+  document.getElementById('r-memo').value = '';
+}
+
+function rSetType(t){ rType = t; renderRecurForm(); }
+
+function addRecur(){
+  const amt = parseInt(document.getElementById('r-amt').value) || 0;
+  if(!amt){ alert('금액을 입력해주세요'); return; }
+  const day = parseInt(document.getElementById('r-day').value) || 1;
+  const cat = document.getElementById('r-cat').value;
+  const memo = document.getElementById('r-memo').value.trim();
+  RECURS.push({ id: Date.now(), type: rType, amount: amt, cat, memo, day, active: true });
+  saveRecurs();
+  renderRecurList();
+  document.getElementById('r-amt').value = '';
+  document.getElementById('r-memo').value = '';
+  applyRecurring();
+}
+
+function deleteRecur(id){
+  if(!confirm('이 반복 항목을 삭제할까요?\n(이미 생성된 거래는 그대로 남아요)')) return;
+  RECURS = RECURS.filter(r => r.id !== id);
+  saveRecurs();
+  renderRecurList();
+}
+
+function toggleRecurActive(id){
+  const r = RECURS.find(r => r.id === id);
+  if(r){ r.active = !r.active; saveRecurs(); renderRecurList(); if(r.active) applyRecurring(); }
+}
+
+function applyRecurring(){
+  if(!RECURS.length) return;
+  const today = new Date();
+  const tY = today.getFullYear(), tM = today.getMonth(), tD = today.getDate();
+  let changed = false;
+  RECURS.forEach(r => {
+    if(!r.active) return;
+    for(let offset = 11; offset >= 0; offset--){
+      let m = tM - offset, y = tY;
+      while(m < 0){ m += 12; y--; }
+      const key = r.id + '_' + y + '-' + String(m+1).padStart(2,'0');
+      if(RECUR_LOG[key]) continue;
+      const maxDay = new Date(y, m+1, 0).getDate();
+      const day = Math.min(r.day, maxDay);
+      if(y === tY && m === tM && tD < day) continue;
+      const dateStr = y+'-'+String(m+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+      TXS.push({ id: Date.now()+Math.random(), type:r.type, amount:r.amount, cat:r.cat,
+        date:dateStr, memo:(r.memo?r.memo+' ':'')+'(반복)', time:'', recurId:r.id });
+      RECUR_LOG[key] = true;
+      changed = true;
+    }
+  });
+  if(changed){ save(); saveRecurLog(); renderCal(); }
 }
 
 // ─── 카테고리 관리 ───
@@ -1633,7 +1816,19 @@ function initSample(){
   save();
 }
 
-document.addEventListener('DOMContentLoaded',function(){ initSample(); renderCal(); syncAlarmToggle(); });
+document.addEventListener('DOMContentLoaded',function(){
+  initSample();
+  applyRecurring();
+  renderCal();
+  syncYrToggle();
+  syncMsLabel();
+});
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
