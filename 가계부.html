@@ -1362,26 +1362,19 @@ function goToday(){ const n=new Date();cy=n.getFullYear();cm=n.getMonth();selDat
 
 function renderTxList(){
   const w=document.getElementById('tx-wrap');
-  const monthTxs=TXS.filter(t=>inMonthRange(t.date,cy,cm));
-  if(!monthTxs.length){ w.innerHTML='<div class="empty"><div class="empty-ico">📋</div>이 달 거래가 없어요</div>'; return; }
+  const list=TXS.filter(t=>t.date===selDateStr).sort((a,b)=>b.id-a.id);
   const DOW2=['일','월','화','수','목','금','토'];
-  const byDate={};
-  monthTxs.forEach(t=>{ if(!byDate[t.date])byDate[t.date]=[]; byDate[t.date].push(t); });
-  const dates=Object.keys(byDate).sort((a,b)=>b.localeCompare(a));
-  let h='';
-  dates.forEach(dateStr=>{
-    const list=byDate[dateStr].sort((a,b)=>b.id-a.id);
-    const dt=new Date(dateStr);
-    const label=dt.getFullYear()+'년 '+(dt.getMonth()+1)+'월 '+dt.getDate()+'일 ('+DOW2[dt.getDay()]+')';
-    h+='<div class="tx-group"><div class="tx-date">'+label+'</div><div class="tx-card">';
-    list.forEach(t=>{
-      const c=allCats(t.cat);
-      const cls=t.type==='exp'?'exp':'inc';
-      const timeStr=t.time||'';
-      h+='<div class="tx-row" onclick="openEdit('+t.id+')"><div class="tx-ico-wrap">'+c.e+'</div><div class="tx-info"><div class="tx-amt-line '+cls+'">'+WON+t.amount.toLocaleString()+'</div><div class="tx-cat">'+t.cat+'</div>'+(t.memo?'<div class="tx-memo-line">'+t.memo+'</div>':'')+'</div>'+(timeStr?'<div class="tx-time">'+timeStr+'</div>':'')+'</div>';
-    });
-    h+='</div></div>';
+  const dt=new Date(selDateStr+'T00:00:00');
+  const label=dt.getFullYear()+'년 '+(dt.getMonth()+1)+'월 '+dt.getDate()+'일 ('+DOW2[dt.getDay()]+')';
+  if(!list.length){ w.innerHTML='<div class="empty"><div class="empty-ico">📋</div>'+label+'<br>거래가 없어요</div>'; return; }
+  let h='<div class="tx-group"><div class="tx-date">'+label+'</div><div class="tx-card">';
+  list.forEach(t=>{
+    const c=allCats(t.cat);
+    const cls=t.type==='exp'?'exp':'inc';
+    const timeStr=t.time||'';
+    h+='<div class="tx-row" onclick="openEdit('+t.id+')"><div class="tx-ico-wrap">'+c.e+'</div><div class="tx-info"><div class="tx-amt-line '+cls+'">'+WON+t.amount.toLocaleString()+'</div><div class="tx-cat">'+t.cat+'</div>'+(t.memo?'<div class="tx-memo-line">'+t.memo+'</div>':'')+'</div>'+(timeStr?'<div class="tx-time">'+timeStr+'</div>':'')+'</div>';
   });
+  h+='</div></div>';
   w.innerHTML=h;
 }
 
