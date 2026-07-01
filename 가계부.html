@@ -1119,17 +1119,15 @@ html, body {
     </div>
     <div style="padding:0 16px 4px;flex:1;overflow-y:auto;max-height:40vh;" id="recur-list"></div>
     <div style="padding:14px 16px;border-top:1px solid var(--border);flex-shrink:0">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-        <button class="mode-seg-btn active" id="rseg-exp" onclick="rSetType('exp')">지출</button>
-        <button class="mode-seg-btn" id="rseg-inc" onclick="rSetType('inc')">수입</button>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;margin-bottom:8px">
         <input class="f-input" id="r-amt" type="number" placeholder="금액" inputmode="numeric">
         <select class="f-input" id="r-day"></select>
       </div>
-      <select class="f-input" id="r-cat" style="width:100%;margin-bottom:8px"></select>
-      <input class="f-input" id="r-memo" placeholder="메모 (선택사항)" style="width:100%;margin-bottom:10px">
-      <button class="save-btn" style="margin:0;width:100%" onclick="addRecur()">반복 추가</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <select class="f-input" id="r-cat"></select>
+        <input class="f-input" id="r-memo" placeholder="메모">
+      </div>
+      <button class="save-btn" style="margin:0;width:100%" onclick="addRecur()">추가</button>
     </div>
     <div style="height:env(safe-area-inset-bottom)"></div>
   </div>
@@ -1439,10 +1437,7 @@ function inMonthRange(dateStr, year, month){
 }
 
 // ─── 반복 관리 ───
-let rType = 'exp';
-
 function openRecurModal(){
-  rType = 'exp';
   renderRecurForm();
   renderRecurList();
   document.getElementById('recur-overlay').classList.add('open');
@@ -1474,18 +1469,14 @@ function renderRecurList(){
 }
 
 function renderRecurForm(){
-  document.getElementById('rseg-exp').className = 'mode-seg-btn' + (rType === 'exp' ? ' active' : '');
-  document.getElementById('rseg-inc').className = 'mode-seg-btn' + (rType === 'inc' ? ' active' : '');
   const daySel = document.getElementById('r-day');
   if(!daySel.children.length){
     for(let d = 1; d <= 28; d++) daySel.innerHTML += '<option value="'+d+'">'+d+'일</option>';
   }
-  document.getElementById('r-cat').innerHTML = CATS[rType].map(c => '<option value="'+c.n+'">'+c.e+' '+c.n+'</option>').join('');
+  document.getElementById('r-cat').innerHTML = CATS.exp.map(c => '<option value="'+c.n+'">'+c.e+' '+c.n+'</option>').join('');
   document.getElementById('r-amt').value = '';
   document.getElementById('r-memo').value = '';
 }
-
-function rSetType(t){ rType = t; renderRecurForm(); }
 
 function addRecur(){
   const amt = parseInt(document.getElementById('r-amt').value) || 0;
@@ -1493,7 +1484,7 @@ function addRecur(){
   const day = parseInt(document.getElementById('r-day').value) || 1;
   const cat = document.getElementById('r-cat').value;
   const memo = document.getElementById('r-memo').value.trim();
-  RECURS.push({ id: Date.now(), type: rType, amount: amt, cat, memo, day, active: true });
+  RECURS.push({ id: Date.now(), type: 'exp', amount: amt, cat, memo, day, active: true });
   saveRecurs();
   renderRecurList();
   document.getElementById('r-amt').value = '';
