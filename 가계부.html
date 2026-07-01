@@ -732,18 +732,13 @@ html, body {
 }
 .cm-cat-item .cm-ico { font-size: 22px; }
 .cm-cat-item .cm-del {
-  position: absolute; top: -6px; right: -6px;
-  width: 20px; height: 20px;
+  position: absolute; top: -7px; right: -7px;
+  width: 22px; height: 22px;
   border-radius: 50%; background: var(--red);
-  color: #fff; border: none; cursor: pointer;
-  font-size: 11px; font-weight: 700;
-  display: none; align-items: center; justify-content: center;
-  z-index: 2;
-}
-.cm-cat-item.del-mode .cm-del { display: flex; }
-.cm-cat-item.del-mode { border-color: #ffaaaa; animation: shake .3s; }
-@keyframes shake {
-  0%,100%{transform:rotate(0)} 25%{transform:rotate(-2deg)} 75%{transform:rotate(2deg)}
+  color: #fff; border: 2px solid #fff; cursor: pointer;
+  font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2; line-height: 1;
 }
 
 /* 추가 영역 */
@@ -1532,7 +1527,6 @@ function applyRecurring(){
 // ─── 카테고리 관리 ───
 let catManageType = 'exp';
 let pickedEmoji = '📦';
-let delModeIdx = -1;
 
 const EMOJI_DATA = [
   {label:'음식·카페', list:['☕','🍽️','🍜','🍱','🍔','🍕','🍣','🍰','🧁','🥤','🍺','🍷','🥗','🍞']},
@@ -1561,7 +1555,6 @@ function buildEmojiPicker(){
 function openCatManage(type){
   catManageType = type;
   document.getElementById('cat-manage-title').textContent = (type==='exp'?'지출':'수입')+' 카테고리 관리';
-  delModeIdx = -1;
   pickedEmoji = '📦';
   document.getElementById('cm-emoji-btn').textContent = '📦';
   document.getElementById('new-cat-name').value = '';
@@ -1587,80 +1580,29 @@ function pickEmoji(e){
   setTimeout(()=>document.getElementById('emoji-picker').classList.remove('open'), 150);
 }
 
-let longPressTimer = null;
-
 function renderCatManageList(){
   const list = CATS[catManageType];
   const wrap = document.getElementById('cat-manage-list');
   wrap.innerHTML = list.map((c,i) =>
-    '<div class="cm-cat-item'+(delModeIdx===i?' del-mode':'')+'" data-idx="'+i+'">' +
+    '<div class="cm-cat-item" data-idx="'+i+'">' +
     '<span class="cm-ico">'+c.e+'</span>' +
     '<span style="font-size:11px;text-align:center;line-height:1.2;color:#000">'+c.n+'</span>' +
     '<button class="cm-del" data-idx="'+i+'">✕</button>' +
     '</div>'
   ).join('');
 
-  wrap.querySelectorAll('.cm-cat-item').forEach(el => {
-    const i = parseInt(el.dataset.idx);
-
-    // 터치 시작 - 기본 동작(복사 메뉴 등) 차단
-    el.addEventListener('touchstart', e=>{
-      e.preventDefault();
-      longPressTimer = setTimeout(()=>{ startDelMode(i); }, 500);
-    }, {passive:false});
-    el.addEventListener('touchend', e=>{
-      e.preventDefault();
-      clearTimeout(longPressTimer);
-    }, {passive:false});
-    el.addEventListener('touchmove', ()=>{ clearTimeout(longPressTimer); }, {passive:true});
-
-    // 마우스 (데스크톱/미리보기)
-    el.addEventListener('mousedown', ()=>{
-      longPressTimer = setTimeout(()=>{ startDelMode(i); }, 500);
-    });
-    el.addEventListener('mouseup', ()=>{ clearTimeout(longPressTimer); });
-    el.addEventListener('mouseleave', ()=>{ clearTimeout(longPressTimer); });
-
-    // 탭 - 삭제모드 해제
-    el.addEventListener('click', ()=>{
-      if(delModeIdx >= 0){ delModeIdx=-1; renderCatManageList(); }
-    });
-  });
-
-  // 삭제 버튼
   wrap.querySelectorAll('.cm-del').forEach(btn => {
-    btn.addEventListener('click', e=>{
-      e.stopPropagation();
-      confirmDel(parseInt(btn.dataset.idx));
-    });
+    const i = parseInt(btn.dataset.idx);
+    btn.addEventListener('click', e => { e.stopPropagation(); confirmDel(i); });
+    btn.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); confirmDel(i); }, {passive:false});
   });
-
-  // 외부 터치/클릭 시 삭제모드 취소 - 한 번만 등록
-  if(!wrap._outsideHandler){
-    wrap._outsideHandler = true;
-    document.getElementById('cat-overlay').addEventListener('touchstart', e=>{
-      if(delModeIdx>=0 && !e.target.closest('.cm-cat-item')){
-        delModeIdx=-1; renderCatManageList();
-      }
-    }, {passive:true});
-    document.getElementById('cat-overlay').addEventListener('click', e=>{
-      if(delModeIdx>=0 && !e.target.closest('.cm-cat-item')){
-        delModeIdx=-1; renderCatManageList();
-      }
-    });
-  }
 }
 
-function startDelMode(i){
-  // 진동 피드백 (지원 기기)
-  if(navigator.vibrate) navigator.vibrate(40);
-  delModeIdx=i; renderCatManageList();
-}
 function confirmDel(i){
   const list=CATS[catManageType];
   if(list.length<=1){ alert('최소 1개 이상 필요해요'); return; }
   list.splice(i,1);
-  saveCats(); delModeIdx=-1; renderCatManageList();
+  saveCats(); renderCatManageList();
 }
 
 function addCategory(){
