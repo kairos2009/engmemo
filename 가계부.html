@@ -366,59 +366,56 @@ html, body {
 .fab svg { width: 26px; height: 26px; }
 
 /* ─── 통계 ─── */
-.type-seg {
-  display: flex;
-  margin: 14px 18px 0;
-  background: var(--border);
-  border-radius: 10px;
-  padding: 3px;
+/* ─── 통계 ─── */
+.stat-year-nav {
+  display: flex; align-items: center; justify-content: center; gap: 20px;
+  padding: 14px 18px 10px;
+  font-size: 18px; font-weight: 700; color: var(--text);
 }
-.type-seg button {
-  flex: 1; padding: 8px;
-  border: none; background: none;
-  border-radius: 8px;
-  font-size: 14px; font-weight: 600;
-  cursor: pointer;
-  color: var(--sub);
-  font-family: inherit;
+.stat-year-nav button { background: none; border: none; font-size: 26px; color: var(--sub); cursor: pointer; line-height: 1; }
+.stat-annual {
+  display: flex; justify-content: space-around; align-items: center;
+  margin: 0 14px 14px; padding: 12px 8px;
+  background: var(--card); border-radius: 14px; border: 1px solid var(--border);
 }
-.type-seg button.active { background: var(--card); color: var(--red); box-shadow: var(--shadow); }
-.type-seg button.active.inc-mode { color: var(--blue); }
-
-.month-nav {
-  display: flex; align-items: center; justify-content: center;
-  gap: 24px; padding: 12px 0;
-  font-size: 15px; font-weight: 700;
+.stat-annual-item { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.stat-annual-item .sa-lbl { font-size: 11px; color: var(--sub); font-weight: 500; }
+.stat-annual-item .sa-val { font-size: 15px; font-weight: 700; }
+.stat-annual-item.inc .sa-val { color: var(--blue); }
+.stat-annual-item.exp .sa-val { color: var(--red); }
+.stat-annual-divider { width: 1px; height: 30px; background: var(--border); }
+.stat-chart-wrap { overflow-x: auto; padding: 0 14px; -webkit-overflow-scrolling: touch; }
+.stat-chart {
+  display: flex; align-items: flex-end; gap: 3px;
+  height: 150px; min-width: 100%; padding-bottom: 0;
 }
-.month-nav button { background: none; border: none; cursor: pointer; font-size: 20px; color: var(--sub); }
-
-.pie-area { display: flex; justify-content: center; padding: 4px 0 8px; }
-.pie-area svg { width: 190px; height: 190px; }
-
-.leg { display: flex; flex-wrap: wrap; gap: 8px 14px; justify-content: center; padding: 4px 18px 12px; }
-.leg-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--sub); }
-.leg-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-
-.stat-total { text-align: center; font-size: 13px; color: var(--sub); padding: 0 18px 10px; }
-.stat-total b { display: block; font-size: 24px; font-weight: 800; margin-top: 2px; }
-
-.stat-rows { padding: 0 18px; display: flex; flex-direction: column; gap: 9px; }
-.stat-row {
-  background: var(--card);
-  border-radius: var(--radius);
-  padding: 13px 15px;
-  display: flex; align-items: center; gap: 11px;
-  border: 1px solid var(--border);
+.sc-col { display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 20px; }
+.sc-bars { display: flex; align-items: flex-end; gap: 2px; height: 120px; }
+.sc-bar { width: 9px; border-radius: 3px 3px 0 0; min-height: 2px; }
+.sc-bar.inc { background: var(--blue); opacity: 0.75; }
+.sc-bar.exp { background: var(--red); opacity: 0.75; }
+.sc-label { font-size: 9px; color: var(--sub); margin-top: 3px; white-space: nowrap; }
+.stat-legend {
+  display: flex; gap: 16px; justify-content: center;
+  padding: 8px 0 12px; font-size: 12px; font-weight: 600;
 }
-.stat-ico { font-size: 22px; width: 36px; text-align: center; }
-.stat-body { flex: 1; min-width: 0; }
-.stat-cat { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
-.bar-bg { height: 4px; background: var(--border); border-radius: 99px; overflow: hidden; }
-.bar-fill { height: 100%; border-radius: 99px; }
-.stat-right { text-align: right; }
-.stat-cnt { font-size: 11px; color: var(--sub); }
-.stat-amt { font-size: 14px; font-weight: 700; }
-.stat-pct { font-size: 11px; color: var(--sub); }
+.stat-legend .sl-inc { color: var(--blue); }
+.stat-legend .sl-exp { color: var(--red); }
+.stat-month-list {
+  padding: 0 14px; display: flex; flex-direction: column; gap: 7px;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+}
+.sml-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 11px 14px; cursor: pointer;
+}
+.sml-row:active { background: #fafafa; }
+.sml-month { font-size: 14px; font-weight: 700; color: var(--text); width: 26px; flex-shrink: 0; }
+.sml-vals { display: flex; flex: 1; justify-content: space-between; align-items: center; }
+.sml-inc { font-size: 12px; color: var(--blue); font-weight: 600; }
+.sml-exp { font-size: 12px; color: var(--red); font-weight: 600; }
+.sml-bal { font-size: 13px; font-weight: 700; }
 
 /* ─── 설정 ─── */
 .set-group { margin: 14px 18px 0; }
@@ -925,19 +922,35 @@ html, body {
     <span class="topbar-title">통계</span>
     <div style="width:36px"></div>
   </div>
-  <div class="type-seg">
-    <button id="seg-exp" class="active" onclick="setStatType('exp')">지출</button>
-    <button id="seg-inc" onclick="setStatType('inc')">수입</button>
+  <div class="stat-year-nav">
+    <button onclick="statYearShift(-1)">&#8249;</button>
+    <span id="stat-year-title">2025년</span>
+    <button onclick="statYearShift(1)">&#8250;</button>
   </div>
-  <div class="month-nav">
-    <button onclick="statShift(-1)">&#8249;</button>
-    <span id="stat-title"></span>
-    <button onclick="statShift(1)">&#8250;</button>
+  <div class="stat-annual">
+    <div class="stat-annual-item inc">
+      <span class="sa-lbl">연간 수입</span>
+      <span class="sa-val" id="stat-ann-inc">0원</span>
+    </div>
+    <div class="stat-annual-divider"></div>
+    <div class="stat-annual-item exp">
+      <span class="sa-lbl">연간 지출</span>
+      <span class="sa-val" id="stat-ann-exp">0원</span>
+    </div>
+    <div class="stat-annual-divider"></div>
+    <div class="stat-annual-item">
+      <span class="sa-lbl">잔액</span>
+      <span class="sa-val" id="stat-ann-bal">0원</span>
+    </div>
   </div>
-  <div class="pie-area"><svg id="pie" viewBox="0 0 190 190"></svg></div>
-  <div class="leg" id="leg"></div>
-  <div class="stat-total">지출 합계 <b id="stat-total-b" style="color:var(--red)">0원</b></div>
-  <div class="stat-rows" id="stat-rows"></div>
+  <div class="stat-chart-wrap">
+    <div class="stat-chart" id="stat-chart"></div>
+  </div>
+  <div class="stat-legend">
+    <span class="sl-inc">■ 수입</span>
+    <span class="sl-exp">■ 지출</span>
+  </div>
+  <div class="stat-month-list" id="stat-month-list"></div>
 </div>
 
 <!-- 설정 화면 -->
@@ -1243,7 +1256,7 @@ function save(){ try{ localStorage.setItem('gb2',JSON.stringify(TXS)); }catch(e)
 
 let cy=new Date().getFullYear(), cm=new Date().getMonth();
 let selDateStr=new Date().toISOString().slice(0,10);
-let sy=cy, sm=cm, sType='exp';
+let sy=cy;
 let mType='exp', mCat='', amtStr='', editId=null;
 
 function goScr(scrId,tabId){
@@ -1423,46 +1436,44 @@ function doSearch(){
 }
 
 function renderStat(){
-  document.getElementById('stat-title').textContent=sy+'년 '+(sm+1)+'월';
-  const list=TXS.filter(t=>{const d=new Date(t.date);return d.getFullYear()===sy&&d.getMonth()===sm&&t.type===sType;});
-  const total=list.reduce((s,t)=>s+t.amount,0);
-  document.getElementById('stat-total-b').textContent=total.toLocaleString()+'원';
-  document.getElementById('stat-total-b').style.color=sType==='exp'?'var(--red)':'var(--blue)';
-  document.getElementById('stat-total-b').previousSibling.textContent=sType==='exp'?'지출 합계 ':'수입 합계 ';
-  const catMap={};
-  list.forEach(t=>{catMap[t.cat]=(catMap[t.cat]||0)+t.amount;});
-  const cats=Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
-  const pie=document.getElementById('pie'), leg=document.getElementById('leg');
-  pie.innerHTML=''; leg.innerHTML='';
-  if(!cats.length){
-    pie.innerHTML='<circle cx="95" cy="95" r="80" fill="#eee"/>';
-    document.getElementById('stat-rows').innerHTML='<div class="empty"><div class="empty-ico">📊</div>이 달 내역이 없어요</div>';
-    return;
+  document.getElementById('stat-year-title').textContent=sy+'년';
+  // 월별 합계 계산 (1~12월)
+  const months=[];
+  for(let m=0;m<12;m++){
+    const txs=TXS.filter(t=>{const d=new Date(t.date);return d.getFullYear()===sy&&d.getMonth()===m;});
+    const inc=txs.filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0);
+    const exp=txs.filter(t=>t.type==='exp').reduce((s,t)=>s+t.amount,0);
+    months.push({inc,exp});
   }
-  let ang=-Math.PI/2;
-  cats.forEach(([cat,amt],i)=>{
-    const frac=amt/total, a=frac*2*Math.PI, ea=ang+a;
-    const cx=95,cy2=95,r=80, x1=cx+r*Math.cos(ang),y1=cy2+r*Math.sin(ang), x2=cx+r*Math.cos(ea),y2=cy2+r*Math.sin(ea), lg=a>Math.PI?1:0, col=COLORS[i%COLORS.length];
-    const p=document.createElementNS('http://www.w3.org/2000/svg','path');
-    p.setAttribute('d','M'+cx+','+cy2+'L'+x1+','+y1+'A'+r+','+r+' 0 '+lg+',1 '+x2+','+y2+'Z');
-    p.setAttribute('fill',col); pie.appendChild(p);
-    if(frac>0.06){
-      const ma=ang+a/2, tx=document.createElementNS('http://www.w3.org/2000/svg','text');
-      tx.setAttribute('x',cx+r*.62*Math.cos(ma)); tx.setAttribute('y',cy2+r*.62*Math.sin(ma));
-      tx.setAttribute('text-anchor','middle'); tx.setAttribute('dominant-baseline','middle');
-      tx.setAttribute('fill','#fff'); tx.setAttribute('font-size','11'); tx.setAttribute('font-weight','700');
-      tx.textContent=(frac*100).toFixed(1)+'%'; pie.appendChild(tx);
-    }
-    leg.innerHTML+='<div class="leg-item"><div class="leg-dot" style="background:'+col+'"></div>'+cat+'</div>';
-    ang=ea;
-  });
-  document.getElementById('stat-rows').innerHTML=cats.map(([cat,amt],i)=>{
-    const c=allCats(cat), pct=total>0?amt/total*100:0, cnt=list.filter(t=>t.cat===cat).length;
-    return '<div class="stat-row"><div class="stat-ico">'+c.e+'</div><div class="stat-body"><div class="stat-cat">'+cat+'</div><div class="bar-bg"><div class="bar-fill" style="width:'+pct+'%;background:'+COLORS[i%COLORS.length]+'"></div></div></div><div class="stat-right"><div class="stat-cnt">'+cnt+'건</div><div class="stat-amt" style="color:'+(sType==='exp'?'var(--red)':'var(--blue)')+'">'+amt.toLocaleString()+'원</div><div class="stat-pct">'+pct.toFixed(1)+'%</div></div></div>';
+  // 연간 합계
+  const annInc=months.reduce((s,m)=>s+m.inc,0);
+  const annExp=months.reduce((s,m)=>s+m.exp,0);
+  const annBal=annInc-annExp;
+  document.getElementById('stat-ann-inc').textContent=annInc.toLocaleString()+'원';
+  document.getElementById('stat-ann-exp').textContent=annExp.toLocaleString()+'원';
+  const balEl=document.getElementById('stat-ann-bal');
+  balEl.textContent=(annBal>=0?'+':'')+annBal.toLocaleString()+'원';
+  balEl.style.color=annBal>=0?'var(--blue)':'var(--red)';
+  // 막대 차트
+  const maxVal=Math.max(...months.map(m=>Math.max(m.inc,m.exp)),1);
+  const BAR_H=120;
+  document.getElementById('stat-chart').innerHTML=months.map((m,i)=>{
+    const iH=m.inc>0?Math.max(3,Math.round(m.inc/maxVal*BAR_H)):0;
+    const eH=m.exp>0?Math.max(3,Math.round(m.exp/maxVal*BAR_H)):0;
+    return '<div class="sc-col"><div class="sc-bars"><div class="sc-bar inc" style="height:'+iH+'px"></div><div class="sc-bar exp" style="height:'+eH+'px"></div></div><div class="sc-label">'+(i+1)+'월</div></div>';
   }).join('');
+  // 월별 리스트
+  const hasData=months.some(m=>m.inc>0||m.exp>0);
+  const listEl=document.getElementById('stat-month-list');
+  if(!hasData){ listEl.innerHTML='<div class="empty"><div class="empty-ico">📊</div>'+sy+'년 거래 내역이 없어요</div>'; return; }
+  listEl.innerHTML=months.map((m,i)=>{
+    if(m.inc===0&&m.exp===0) return '';
+    const bal=m.inc-m.exp;
+    const balColor=bal>=0?'var(--blue)':'var(--red)';
+    return '<div class="sml-row"><div class="sml-month">'+(i+1)+'월</div><div class="sml-vals"><span class="sml-inc">+'+(m.inc>0?m.inc.toLocaleString():'0')+'원</span><span class="sml-exp">-'+(m.exp>0?m.exp.toLocaleString():'0')+'원</span><span class="sml-bal" style="color:'+balColor+'">'+(bal>=0?'+':'')+bal.toLocaleString()+'원</span></div></div>';
+  }).filter(Boolean).join('');
 }
-function setStatType(t){ sType=t; document.getElementById('seg-exp').className=t==='exp'?'active':''; document.getElementById('seg-inc').className=t==='inc'?'active':''; renderStat(); }
-function statShift(d){ sm+=d; if(sm<0){sm=11;sy--;} if(sm>11){sm=0;sy++;} renderStat(); }
+function statYearShift(d){ sy+=d; renderStat(); }
 
 function openModal(tx=null){
   editId=tx?tx.id:null;
