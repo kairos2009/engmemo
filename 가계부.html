@@ -1,0 +1,1639 @@
+<!DOCTYPE html>
+<html lang="ko" style="background:#ffffff;">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="가계부">
+<meta name="mobile-web-app-capable" content="yes">
+<title>가계부</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+html { color-scheme: light; background: #ffffff !important; }
+body { color-scheme: light; background: #ffffff !important; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #ffffff;
+  --card: #ffffff;
+  --text: #1a1a1a;
+  --sub: #888888;
+  --border: #e5e5e5;
+  --red: #d14a35;
+  --blue: #2b7cc1;
+  --today: #333333;
+  --shadow: 0 1px 8px rgba(0,0,0,0.06);
+  --radius: 14px;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background: #ffffff !important;
+  color: #1a1a1a !important;
+  font-family: 'Noto Sans KR', 'Noto Sans', sans-serif;
+  font-size: 15px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+.screen { display: none; min-height: 100vh; padding-bottom: calc(72px + env(safe-area-inset-bottom)); background: #ffffff; }
+.screen.active { display: block; }
+
+/* ─── 탑바 ─── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 10px;
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  border-bottom: 1px solid var(--border);
+}
+.topbar-title { font-size: 17px; font-weight: 700; color: var(--text); }
+.topbar-side { display: flex; gap: 6px; align-items: center; }
+.icon-btn {
+  width: 36px; height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--card);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+.icon-btn:active { opacity: 0.6; }
+
+/* ─── 요약바 ─── */
+.summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 0;
+  padding: 10px 18px 8px;
+  font-size: 13px;
+}
+.s-income { color: var(--blue); font-weight: 600; }
+.s-expense { color: var(--red); font-weight: 600; }
+.s-right { text-align: right; }
+
+/* ─── 달력 카드 ─── */
+.cal-card {
+  background: var(--card);
+  margin: 10px 14px 0;
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* 헤더: 연도+월 / 오늘 버튼 */
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 10px;
+}
+.cal-month-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--blue);
+  letter-spacing: -0.3px;
+}
+.cal-arrow {
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: var(--blue);
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+.today-btn {
+  background: none;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--blue);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* 요일 */
+.cal-dow {
+  display: grid;
+  grid-template-columns: repeat(7,1fr);
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sub);
+  padding: 4px 0 6px;
+  border-bottom: 1px solid var(--border);
+}
+.cal-dow span:first-child { color: var(--red); }
+.cal-dow span:last-child { color: var(--blue); }
+
+/* 날짜 그리드 */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7,1fr);
+  padding: 4px 0;
+}
+.cal-cell {
+  min-height: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 2px 3px;
+  cursor: pointer;
+  position: relative;
+}
+.cal-cell:active { background: #f5f5f5; }
+
+/* 날짜 숫자 */
+.day-num {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text);
+  margin-bottom: 1px;
+}
+.cal-cell.is-sun .day-num { color: var(--red); }
+.cal-cell.is-sat .day-num { color: var(--blue); }
+.cal-cell.is-today .day-num {
+  background: #e8e8e8;
+  font-weight: 700;
+}
+.cal-cell.is-selected .day-num {
+  background: #e0e0e0;
+  font-weight: 700;
+}
+
+/* 금액 */
+.day-exp {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--red);
+  text-align: center;
+  line-height: 1.3;
+  word-break: keep-all;
+}
+.day-inc {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--blue);
+  text-align: center;
+  line-height: 1.3;
+}
+
+/* 하단 합계 */
+.cal-footer {
+  border-top: 1px solid var(--border);
+  padding: 0 18px;
+}
+.cal-footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+  font-size: 15px;
+}
+.cal-footer-row:first-child {
+  border-bottom: 1px solid var(--border);
+}
+.cf-label { color: var(--text); font-weight: 400; flex: 1; }
+.cf-exp { color: var(--red); font-weight: 700; font-size: 16px; }
+.cf-inc { color: var(--blue); font-weight: 700; font-size: 16px; }
+.cf-green { color: #2a9e5c; font-weight: 700; font-size: 16px; }
+.cf-black { color: var(--text); font-weight: 700; font-size: 15px; }
+.cf-arr { color: #bbb; font-size: 14px; margin-left: 4px; }
+.cf-clickable { cursor: pointer; }
+.cf-clickable:active { background: #f5f5f5; }
+
+/* ─── 새 상단바 (이미지 스타일) ─── */
+.topbar2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 14px 8px;
+}
+.tb2-side { display: flex; gap: 8px; }
+.icon-btn2 {
+  width: 38px; height: 38px;
+  border: none;
+  border-radius: 50%;
+  background: var(--card);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+.icon-btn2:active { opacity: 0.6; }
+.icon-btn2 svg { width: 19px; height: 19px; }
+.tb2-month-nav {
+  display: flex; align-items: center; gap: 10px;
+}
+.tb2-title { font-size: 17px; font-weight: 700; color: var(--text); }
+.cal-arrow2 {
+  background: none; border: none;
+  font-size: 18px; color: var(--sub);
+  cursor: pointer; padding: 0 2px; line-height: 1;
+}
+
+/* ─── 새 요약 영역 ─── */
+.summary2 {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 18px 14px;
+  font-size: 14px;
+}
+.summary2 > div { display: flex; flex-direction: column; gap: 4px; }
+.sm2-right { text-align: right; }
+
+/* ─── 새 달력 래퍼 (카드 없이) ─── */
+.cal-wrap2 { padding: 0 12px; }
+.cal-wrap2 .cal-dow { border-bottom: 1px solid var(--border); padding: 6px 0; }
+.cal-wrap2 .cal-grid { padding: 4px 0; }
+.cal-wrap2 .cal-cell { min-height: 46px; }
+
+/* ─── 거래 목록 ─── */
+.tx-wrap { padding: 12px 0 0; }
+.tx-group { margin-bottom: 4px; }
+.tx-date {
+  font-size: 12px; color: var(--sub); font-weight: 500;
+  padding: 8px 18px 6px;
+}
+.tx-card { background: var(--card); margin: 0 14px; border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; margin-bottom: 4px; }
+.tx-row {
+  display: flex; align-items: center;
+  padding: 9px 14px;
+  gap: 11px;
+  cursor: pointer;
+  min-height: 0;
+}
+.tx-row:not(:last-child) { border-bottom: 1px solid var(--border); }
+.tx-row:active { background: #fafafa; }
+.tx-ico-wrap {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: #f0f0f0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.tx-info { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
+.tx-amt-line { font-size: 14px; font-weight: 700; flex-shrink: 0; }
+.tx-amt-line.exp { color: var(--red); }
+.tx-amt-line.inc { color: var(--blue); }
+.tx-cat { font-size: 13px; color: var(--text); flex-shrink: 0; }
+.tx-memo-line { font-size: 12px; color: var(--sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tx-time { font-size: 11px; color: var(--sub); flex-shrink: 0; }
+
+.empty {
+  text-align: center;
+  padding: 36px 0;
+  color: var(--sub);
+  font-size: 13px;
+}
+.empty-ico { font-size: 36px; margin-bottom: 8px; }
+
+/* ─── 탭바 ─── */
+.tabbar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: calc(60px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  display: flex;
+  z-index: 100;
+}
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--sub);
+  font-family: 'Noto Sans KR', 'Noto Sans', sans-serif;
+}
+.tab.active { color: var(--text); }
+.tab svg { width: 22px; height: 22px; }
+
+/* ─── FAB ─── */
+.fab {
+  position: fixed;
+  bottom: calc(76px + env(safe-area-inset-bottom)); right: 18px;
+  width: 50px; height: 50px;
+  border-radius: 50%;
+  background: var(--text);
+  color: #fff;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.22);
+  z-index: 90;
+}
+.fab:active { transform: scale(0.93); }
+.fab svg { width: 26px; height: 26px; }
+
+/* ─── 통계 ─── */
+.type-seg {
+  display: flex;
+  margin: 14px 18px 0;
+  background: var(--border);
+  border-radius: 10px;
+  padding: 3px;
+}
+.type-seg button {
+  flex: 1; padding: 8px;
+  border: none; background: none;
+  border-radius: 8px;
+  font-size: 14px; font-weight: 600;
+  cursor: pointer;
+  color: var(--sub);
+  font-family: inherit;
+}
+.type-seg button.active { background: var(--card); color: var(--red); box-shadow: var(--shadow); }
+.type-seg button.active.inc-mode { color: var(--blue); }
+
+.month-nav {
+  display: flex; align-items: center; justify-content: center;
+  gap: 24px; padding: 12px 0;
+  font-size: 15px; font-weight: 700;
+}
+.month-nav button { background: none; border: none; cursor: pointer; font-size: 20px; color: var(--sub); }
+
+.pie-area { display: flex; justify-content: center; padding: 4px 0 8px; }
+.pie-area svg { width: 190px; height: 190px; }
+
+.leg { display: flex; flex-wrap: wrap; gap: 8px 14px; justify-content: center; padding: 4px 18px 12px; }
+.leg-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--sub); }
+.leg-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+.stat-total { text-align: center; font-size: 13px; color: var(--sub); padding: 0 18px 10px; }
+.stat-total b { display: block; font-size: 24px; font-weight: 800; margin-top: 2px; }
+
+.stat-rows { padding: 0 18px; display: flex; flex-direction: column; gap: 9px; }
+.stat-row {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 13px 15px;
+  display: flex; align-items: center; gap: 11px;
+  border: 1px solid var(--border);
+}
+.stat-ico { font-size: 22px; width: 36px; text-align: center; }
+.stat-body { flex: 1; min-width: 0; }
+.stat-cat { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+.bar-bg { height: 4px; background: var(--border); border-radius: 99px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 99px; }
+.stat-right { text-align: right; }
+.stat-cnt { font-size: 11px; color: var(--sub); }
+.stat-amt { font-size: 14px; font-weight: 700; }
+.stat-pct { font-size: 11px; color: var(--sub); }
+
+/* ─── 설정 ─── */
+.set-group { margin: 14px 18px 0; }
+.set-label { font-size: 11px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.5px; padding: 0 4px 6px; }
+.set-card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
+.set-row {
+  display: flex; align-items: center;
+  padding: 14px 15px; gap: 12px;
+  cursor: pointer;
+}
+.set-row:not(:last-child) { border-bottom: 1px solid var(--border); }
+.set-row:active { background: #fafafa; }
+.set-ico { font-size: 17px; width: 24px; text-align: center; }
+.set-lbl { flex: 1; font-size: 15px; color: var(--text); }
+.set-arr { font-size: 14px; color: #ccc; }
+
+.toggle {
+  width: 44px; height: 26px;
+  background: #ddd;
+  border-radius: 13px;
+  position: relative;
+  cursor: pointer;
+  transition: background .2s;
+  flex-shrink: 0;
+}
+.toggle.on { background: #333; }
+.toggle::after {
+  content: '';
+  position: absolute;
+  width: 20px; height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  top: 3px; left: 3px;
+  transition: transform .2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,.2);
+}
+.toggle.on::after { transform: translateX(18px); }
+
+/* ─── 모달 ─── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 200;
+  display: none;
+  align-items: flex-end;
+}
+.overlay.open { display: flex; }
+.sheet {
+  background: var(--card);
+  width: 100%;
+  border-radius: 22px 22px 0 0;
+  overflow: hidden;
+  animation: up .28s ease;
+  max-height: 92vh;
+  overflow-y: auto;
+}
+@keyframes up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+/* 상단 컬러 영역 */
+.modal-top {
+  padding: 18px 20px 20px;
+  position: relative;
+  transition: background .2s;
+}
+.modal-top.is-exp { background: #f05a78; }
+.modal-top.is-inc { background: #2b7cc1; }
+.modal-close-btn {
+  position: absolute; top: 16px; left: 16px;
+  background: rgba(255,255,255,.25);
+  border: none; border-radius: 50%;
+  width: 30px; height: 30px;
+  color: #fff; font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-type-row {
+  display: flex; justify-content: center;
+  gap: 32px; padding: 4px 0 8px;
+}
+.modal-type-btn {
+  background: none; border: none;
+  font-size: 15px; font-weight: 600;
+  color: rgba(255,255,255,.5);
+  cursor: pointer; font-family: inherit;
+  padding: 0;
+}
+.modal-type-btn.active { color: #fff; }
+.modal-amt {
+  text-align: center;
+  font-size: 42px; font-weight: 700;
+  color: #fff;
+  letter-spacing: -1px;
+  padding: 6px 0 2px;
+  min-height: 56px;
+}
+.modal-date-row {
+  display: flex; align-items: center;
+  gap: 8px; padding: 10px 0 0;
+}
+.modal-date-ico { font-size: 18px; opacity: .8; }
+.modal-date-txt { font-size: 13px; color: rgba(255,255,255,.8); }
+.modal-date-input {
+  background: none; border: none;
+  font-size: 13px; color: rgba(255,255,255,.8);
+  font-family: inherit; cursor: pointer;
+  outline: none;
+}
+
+/* 키패드 영역 */
+.modal-body { padding: 0 0 calc(24px + env(safe-area-inset-bottom)); }
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  border-top: 1px solid var(--border);
+}
+.key {
+  padding: 18px 0;
+  border: none; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  background: var(--card);
+  font-size: 22px; font-weight: 400;
+  cursor: pointer;
+  color: var(--text);
+  font-family: inherit;
+  text-align: center;
+}
+.key:nth-child(3n) { border-right: none; }
+.key:active { background: var(--bg); }
+.key-del { background: var(--bg); }
+
+/* 카테고리 버튼 */
+.cat-trigger {
+  width: 100%; padding: 16px 20px;
+  border: none; border-top: 1px solid var(--border);
+  background: var(--card);
+  font-size: 15px; color: var(--sub);
+  text-align: center; cursor: pointer;
+  font-family: inherit;
+  font-weight: 500;
+}
+.cat-trigger.selected { color: var(--text); font-weight: 600; }
+
+/* 카테고리 패널 */
+.cat-panel { display: none; padding: 14px 18px; border-top: 1px solid var(--border); }
+.cat-panel.open { display: block; }
+.cat-grid {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.cat-btn {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 3px;
+  padding: 9px 4px;
+  border: 1.5px solid var(--border);
+  border-radius: 11px;
+  background: none;
+  cursor: pointer;
+  font-size: 11px; color: var(--sub);
+  font-family: inherit;
+}
+.cat-btn .ci { font-size: 21px; }
+.cat-btn.sel { border-color: var(--text); background: var(--text); color: #fff; }
+
+/* ─── 카테고리 선택 시트 ─── */
+.cat-sheet { padding-bottom: 0 !important; min-height: 72vh; display: flex; flex-direction: column; }
+.cat-sheet-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px 14px;
+}
+.cat-sheet-title { font-size: 17px; font-weight: 700; color: #000; }
+.cat-sheet-close {
+  background: none; border: none;
+  font-size: 20px; cursor: pointer;
+  color: #999; padding: 4px;
+}
+.cat-sheet-body { padding: 0 18px; flex: 1; }
+.cat-grid-lg {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.cat-grid-lg .cat-btn {
+  padding: 14px 6px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #000;
+  gap: 6px;
+}
+.cat-grid-lg .cat-btn .ci { font-size: 26px; }
+.cat-grid-lg .cat-btn.sel {
+  border-color: #000; background: #000; color: #fff;
+}
+.cat-sheet-footer {
+  padding: 14px 18px 32px;
+  border-top: 1px solid var(--border);
+  margin-top: 10px;
+}
+.cat-edit-btn {
+  width: 100%;
+  padding: 13px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: none;
+  font-size: 14px; font-weight: 600; color: #000;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.cat-edit-btn:active { background: #f5f5f5; }
+
+.f-label { font-size: 12px; font-weight: 700; color: var(--sub); margin-bottom: 6px; }
+.f-row { margin-bottom: 12px; padding: 0 18px; }
+.f-input {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--bg);
+  outline: none;
+}
+.f-input:focus { border-color: #999; }
+
+.save-btn {
+  width: calc(100% - 36px);
+  margin: 4px 18px 0;
+  padding: 15px;
+  background: var(--text);
+  color: #fff;
+  border: none;
+  border-radius: 13px;
+  font-size: 16px; font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  display: block;
+}
+.save-btn:active { opacity: .8; }
+
+/* ─── 카테고리 관리 모달 ─── */
+.cm-sheet { padding: 0 0 0 !important; display: flex; flex-direction: column; min-height: 72vh; }
+
+/* ─── 백업 모달 ─── */
+.backup-sheet { padding: 0 0 36px !important; }
+.backup-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 16px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.backup-title { font-size: 16px; font-weight: 700; color: #000; }
+.backup-section-label {
+  font-size: 12px; font-weight: 600; color: var(--sub);
+  padding: 14px 18px 6px;
+}
+.backup-card {
+  margin: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+.backup-row {
+  display: flex; align-items: center;
+  padding: 14px 16px; gap: 12px;
+  cursor: pointer;
+}
+.backup-row:not(:last-child) { border-bottom: 1px solid var(--border); }
+.backup-row:active { background: #f8f8f8; }
+.backup-ico { font-size: 22px; width: 32px; text-align: center; flex-shrink: 0; }
+.backup-info { flex: 1; }
+.backup-name { font-size: 14px; font-weight: 600; color: #000; }
+.backup-desc { font-size: 12px; color: var(--sub); margin-top: 2px; }
+.backup-badge {
+  display: inline-block;
+  background: #5c6bc0; color: #fff;
+  font-size: 10px; font-weight: 700;
+  padding: 1px 6px; border-radius: 4px;
+  vertical-align: middle; margin-left: 4px;
+}
+.cm-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 16px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-close-btn-dark {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: none; background: #f0f0f0; color: #000;
+  font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.cat-manage-title { font-size: 16px; font-weight: 700; color: #000; }
+.cm-section-label {
+  font-size: 12px; font-weight: 600; color: var(--sub);
+  padding: 12px 18px 6px;
+}
+/* 현재 카테고리 그리드 */
+.cm-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 0 16px;
+  overflow-y: auto;
+}
+.cm-cat-item {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 4px;
+  padding: 10px 4px 8px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  font-size: 12px; color: #000;
+  position: relative;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.cm-cat-item .cm-ico { font-size: 22px; }
+.cm-cat-item .cm-del {
+  position: absolute; top: -6px; right: -6px;
+  width: 20px; height: 20px;
+  border-radius: 50%; background: var(--red);
+  color: #fff; border: none; cursor: pointer;
+  font-size: 11px; font-weight: 700;
+  display: none; align-items: center; justify-content: center;
+  z-index: 2;
+}
+.cm-cat-item.del-mode .cm-del { display: flex; }
+.cm-cat-item.del-mode { border-color: #ffaaaa; animation: shake .3s; }
+@keyframes shake {
+  0%,100%{transform:rotate(0)} 25%{transform:rotate(-2deg)} 75%{transform:rotate(2deg)}
+}
+
+/* 추가 영역 */
+.cm-add-area {
+  padding: 12px 16px 28px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.cm-add-top { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.cm-emoji-btn {
+  width: 48px; height: 48px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px; background: #f8f8f8;
+  font-size: 24px; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.cm-emoji-btn:active { background: #eee; }
+.cat-add-btn {
+  padding: 0 16px; height: 48px;
+  background: #000; color: #fff; border: none;
+  border-radius: 12px; font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: inherit; flex-shrink: 0;
+}
+.cat-add-btn:active { opacity: .8; }
+
+/* 이모지 피커 */
+.emoji-picker {
+  display: none;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+}
+.emoji-picker.open { display: block; }
+.ep-sections {
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 8px 10px;
+}
+.ep-sec-label {
+  font-size: 10px; font-weight: 700; color: var(--sub);
+  padding: 6px 2px 3px;
+}
+.ep-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+.ep-grid button {
+  font-size: 20px; padding: 5px 0;
+  border: none; background: none;
+  border-radius: 8px; cursor: pointer;
+  text-align: center; line-height: 1;
+}
+.ep-grid button:active { background: #f0f0f0; }
+.ep-grid button.picked { background: #e0e0e0; }
+</style>
+</head>
+<body>
+
+<!-- 달력 화면 -->
+<div id="scr-cal" class="screen active">
+
+  <div class="topbar2">
+    <div class="tb2-side">
+      <button class="icon-btn2" onclick="goScr('scr-set','tab-set')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="13" x2="14" y2="13"/><line x1="4" y1="19" x2="20" y2="19"/>
+        </svg>
+      </button>
+      <button class="icon-btn2" onclick="goStat()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="8"/><line x1="18" y1="20" x2="18" y2="4"/>
+        </svg>
+      </button>
+    </div>
+    <div class="tb2-month-nav">
+      <button class="cal-arrow2" onclick="monthShift(-1)">&#8249;</button>
+      <span class="tb2-title" id="cal-title"></span>
+      <button class="cal-arrow2" onclick="monthShift(1)">&#8250;</button>
+    </div>
+    <div class="tb2-side">
+      <button class="icon-btn2" onclick="goToday()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/>
+        </svg>
+      </button>
+      <button class="icon-btn2" onclick="goScr('scr-set','tab-set')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="summary2">
+    <div class="sm2-left">
+      <div>수입 <span class="s-income" id="s-inc">+0원</span></div>
+      <div>지출 <span class="s-expense" id="s-exp">-0원</span></div>
+    </div>
+    <div class="sm2-right">
+      <div>월간 합계 <span id="s-mon">0원</span></div>
+      <div>연간 합계 <span id="s-yr">0원</span></div>
+    </div>
+  </div>
+
+  <div class="cal-wrap2">
+    <div class="cal-dow">
+      <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+
+  <div class="tx-wrap" id="tx-wrap"></div>
+</div>
+
+<!-- 통계 화면 -->
+<div id="scr-stat" class="screen">
+  <div class="topbar">
+    <button class="icon-btn" onclick="goScr('scr-cal','tab-cal')">&#10005;</button>
+    <span class="topbar-title">통계</span>
+    <div style="width:36px"></div>
+  </div>
+  <div class="type-seg">
+    <button id="seg-exp" class="active" onclick="setStatType('exp')">지출</button>
+    <button id="seg-inc" onclick="setStatType('inc')">수입</button>
+  </div>
+  <div class="month-nav">
+    <button onclick="statShift(-1)">&#8249;</button>
+    <span id="stat-title"></span>
+    <button onclick="statShift(1)">&#8250;</button>
+  </div>
+  <div class="pie-area"><svg id="pie" viewBox="0 0 190 190"></svg></div>
+  <div class="leg" id="leg"></div>
+  <div class="stat-total">지출 합계 <b id="stat-total-b" style="color:var(--red)">0원</b></div>
+  <div class="stat-rows" id="stat-rows"></div>
+</div>
+
+<!-- 설정 화면 -->
+<div id="scr-set" class="screen">
+  <div class="topbar">
+    <div style="width:36px"></div>
+    <span class="topbar-title">설정</span>
+    <div style="width:36px"></div>
+  </div>
+
+  <div class="set-group">
+    <div class="set-card">
+      <div class="set-row" onclick="toggleAlarm()"><span class="set-ico">🔔</span><span class="set-lbl">알림</span><div class="toggle" id="tog-alarm"></div></div>
+    </div>
+  </div>
+  <div class="set-group">
+    <div class="set-card">
+      <div class="set-row" onclick="openCatManage('inc')"><span class="set-ico">↑</span><span class="set-lbl">수입 카테고리</span><span class="set-arr">›</span></div>
+      <div class="set-row" onclick="openCatManage('exp')"><span class="set-ico">↓</span><span class="set-lbl">지출 카테고리</span><span class="set-arr">›</span></div>
+      <div class="set-row" onclick="alert('반복 관리 기능은 준비 중이에요')"><span class="set-ico">🔄</span><span class="set-lbl">반복 관리</span><span class="set-arr">›</span></div>
+      <div class="set-row" onclick="alert('월 시작일자 설정 기능은 준비 중이에요')"><span class="set-ico">📅</span><span class="set-lbl">월 시작일자</span><span class="set-arr">›</span></div>
+      <div class="set-row"><span class="set-ico">📆</span><span class="set-lbl">연간 합계 표시</span><div class="toggle on" id="tog-yr" onclick="togSwitch(this)"></div></div>
+    </div>
+  </div>
+  <div class="set-group">
+    <div class="set-card">
+      <div class="set-row"><span class="set-ico">🔒</span><span class="set-lbl">화면 잠금</span><span class="set-arr">›</span></div>
+      <div class="set-row" onclick="openBackupModal()"><span class="set-ico">💾</span><span class="set-lbl">수동 백업 / 복원</span><span class="set-arr">›</span></div>
+      <div class="set-row" onclick="clearAll()"><span class="set-ico">🗑️</span><span class="set-lbl" style="color:var(--red)">전체 데이터 삭제</span><span class="set-arr" style="color:var(--red)">›</span></div>
+    </div>
+  </div>
+  <div style="text-align:center;padding:24px;font-size:12px;color:var(--sub)">가계부 v1.0</div>
+</div>
+
+<!-- 탭바 -->
+<nav class="tabbar">
+  <button class="tab active" id="tab-cal" onclick="goScr('scr-cal','tab-cal')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/>
+      <line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/>
+    </svg>
+    달력
+  </button>
+  <button class="tab" id="tab-stat" onclick="goScr('scr-stat','tab-stat');renderStat()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="8"/><line x1="18" y1="20" x2="18" y2="4"/>
+    </svg>
+    통계
+  </button>
+  <button class="tab" id="tab-set" onclick="goScr('scr-set','tab-set')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+    설정
+  </button>
+</nav>
+
+<!-- FAB -->
+<button class="fab" id="fab" onclick="openModal()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+</button>
+
+<!-- 추가 모달 -->
+<div class="overlay" id="overlay" onclick="bgClose(event)">
+  <div class="sheet">
+    <!-- 상단 컬러 영역 -->
+    <div class="modal-top is-exp" id="modal-top">
+      <button class="modal-close-btn" onclick="closeModal()">✕</button>
+      <div class="modal-type-row">
+        <button class="modal-type-btn active" id="mbtn-exp" onclick="mSetType('exp')">지출</button>
+        <button class="modal-type-btn" id="mbtn-inc" onclick="mSetType('inc')">수입</button>
+      </div>
+      <div class="modal-amt" id="amt-disp">0</div>
+      <div class="modal-date-row">
+        <span class="modal-date-ico">📅</span>
+        <input class="modal-date-input" id="f-date" type="date">
+      </div>
+    </div>
+    <!-- 키패드 -->
+    <div class="modal-body">
+      <div class="keypad">
+        <button class="key" onclick="kp('1')">1</button>
+        <button class="key" onclick="kp('2')">2</button>
+        <button class="key" onclick="kp('3')">3</button>
+        <button class="key" onclick="kp('4')">4</button>
+        <button class="key" onclick="kp('5')">5</button>
+        <button class="key" onclick="kp('6')">6</button>
+        <button class="key" onclick="kp('7')">7</button>
+        <button class="key" onclick="kp('8')">8</button>
+        <button class="key" onclick="kp('9')">9</button>
+        <button class="key" onclick="kp('00')">00</button>
+        <button class="key" onclick="kp('0')">0</button>
+        <button class="key key-del" onclick="kdel()">⌫</button>
+      </div>
+      <!-- 카테고리 버튼 -->
+      <button class="cat-trigger" id="cat-trigger" onclick="openCatSheet()">카테고리</button>
+      <div class="f-row" style="padding:12px 18px 0">
+        <div class="f-label">메모</div>
+        <input class="f-input" id="f-memo" placeholder="메모 (선택사항)">
+      </div>
+      <div style="padding:12px 18px 0">
+        <button class="save-btn" onclick="saveTx()">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 백업/복원 모달 -->
+<div class="overlay" id="backup-overlay" onclick="backupBgClose(event)">
+  <div class="sheet backup-sheet">
+    <div class="handle"></div>
+    <div class="backup-header">
+      <button onclick="closeBackupModal()" class="modal-close-btn-dark">✕</button>
+      <span class="backup-title">백업 / 복원</span>
+      <div style="width:30px"></div>
+    </div>
+
+    <div class="backup-section-label">내보내기</div>
+    <div class="backup-card">
+      <div class="backup-row" onclick="exportJSON()">
+        <div class="backup-ico">📄</div>
+        <div class="backup-info">
+          <div class="backup-name">JSON 백업</div>
+          <div class="backup-desc">앱 복원용 · 모든 데이터 포함</div>
+        </div>
+        <span class="set-arr">›</span>
+      </div>
+      <div class="backup-row" onclick="exportObsidian()">
+        <div class="backup-ico">🗒️</div>
+        <div class="backup-info">
+          <div class="backup-name">Obsidian 저장 <span class="backup-badge">MD</span></div>
+          <div class="backup-desc">월별 마크다운 · Obsidian에 복사하여 사용</div>
+        </div>
+        <span class="set-arr">›</span>
+      </div>
+    </div>
+
+    <div class="backup-section-label">불러오기</div>
+    <div class="backup-card">
+      <div class="backup-row" onclick="document.getElementById('import-file').click()">
+        <div class="backup-ico">📥</div>
+        <div class="backup-info">
+          <div class="backup-name">JSON 복원</div>
+          <div class="backup-desc">백업 파일로 데이터 복원</div>
+        </div>
+        <span class="set-arr">›</span>
+      </div>
+    </div>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)">
+
+    <div style="padding:14px 18px 8px 18px;font-size:11px;color:var(--sub);line-height:1.7">
+      💡 <b>iOS 15+</b>: 공유 시트가 자동으로 열려요. <b>파일에 저장</b>을 선택하세요.<br>
+      💡 구버전 iOS: 새 탭이 열리면 공유 버튼(□↑) → <b>파일에 저장</b>을 탭하세요.<br>
+      📓 Obsidian MD는 Vault 폴더에 저장하면 바로 노트로 열려요.
+    </div>
+  </div>
+</div>
+
+<!-- 카테고리 선택 시트 (별도) -->
+<div class="overlay" id="cat-sheet-overlay" onclick="catSheetBgClose(event)">
+  <div class="sheet cat-sheet">
+    <div class="handle"></div>
+    <div class="cat-sheet-header">
+      <span class="cat-sheet-title" id="cat-sheet-title">카테고리 선택</span>
+      <button onclick="closeCatSheet()" class="cat-sheet-close">✕</button>
+    </div>
+    <div class="cat-sheet-body">
+      <div class="cat-grid-lg" id="cat-grid"></div>
+    </div>
+    <div class="cat-sheet-footer">
+      <button class="cat-edit-btn" onclick="closeCatSheet();openCatManage(mType)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        카테고리 추가 / 편집
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 카테고리 관리 모달 -->
+<div class="overlay" id="cat-overlay" onclick="catBgClose(event)">
+  <div class="sheet cm-sheet">
+    <div class="handle"></div>
+    <div class="cm-header">
+      <button class="modal-close-btn-dark" onclick="closeCatManage()">✕</button>
+      <span class="cat-manage-title" id="cat-manage-title">카테고리 관리</span>
+      <div style="width:30px"></div>
+    </div>
+
+    <!-- 현재 카테고리 그리드 (flex:1 채움) -->
+    <div class="cm-section-label">현재 카테고리 <span style="font-size:11px;color:var(--sub)">(탭→삭제 버튼)</span></div>
+    <div class="cm-cat-grid" id="cat-manage-list"></div>
+
+    <!-- 추가 영역 (하단 고정) -->
+    <div class="cm-section-label" style="padding-top:10px">새 카테고리 추가</div>
+    <div class="cm-add-area">
+      <div class="cm-add-top">
+        <button class="cm-emoji-btn" id="cm-emoji-btn" onclick="toggleEmojiPicker()">📦</button>
+        <input class="f-input" id="new-cat-name" placeholder="카테고리 이름" style="flex:1;">
+        <button class="cat-add-btn" onclick="addCategory()">추가</button>
+      </div>
+      <div class="emoji-picker" id="emoji-picker">
+        <div class="ep-sections" id="ep-sections"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DEFAULT_CATS = {
+  exp: [
+    {e:'☕',n:'카페'},{e:'🍽️',n:'식비'},{e:'🛒',n:'쇼핑'},{e:'📚',n:'교육'},
+    {e:'🚗',n:'교통'},{e:'🏥',n:'의료'},{e:'🎮',n:'여가'},{e:'🏠',n:'주거'},
+    {e:'💡',n:'공과금'},{e:'👗',n:'의류'},{e:'💄',n:'미용'},{e:'📦',n:'기타'}
+  ],
+  inc: [
+    {e:'💼',n:'급여'},{e:'💰',n:'용돈'},{e:'📈',n:'투자'},{e:'🎁',n:'선물'},{e:'💸',n:'기타수입'}
+  ]
+};
+let CATS = { exp: [...DEFAULT_CATS.exp], inc: [...DEFAULT_CATS.inc] };
+try {
+  const savedCats = JSON.parse(localStorage.getItem('gb2_cats')||'null');
+  if(savedCats && savedCats.exp && savedCats.inc) CATS = savedCats;
+} catch(e){}
+function saveCats(){ try{ localStorage.setItem('gb2_cats', JSON.stringify(CATS)); }catch(e){} }
+
+const COLORS = ['#d14a35','#e8967f','#2b7cc1','#7ab8e8','#e8a830','#5caa6f','#9b6abf','#e87070'];
+const WON = String.fromCharCode(8361);
+const MINUS = String.fromCharCode(8722);
+const allCats = c => [...CATS.exp,...CATS.inc].find(x=>x.n===c)||{e:'📦',n:c};
+
+let TXS = [];
+try { TXS = JSON.parse(localStorage.getItem('gb2')||'[]'); } catch(e){}
+function save(){ try{ localStorage.setItem('gb2',JSON.stringify(TXS)); }catch(e){} }
+
+let cy=new Date().getFullYear(), cm=new Date().getMonth(), cd=new Date().getDate();
+let sy=cy, sm=cm, sType='exp';
+let mType='exp', mCat='', amtStr='', editId=null;
+
+function goScr(scrId,tabId){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(scrId).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  document.getElementById('fab').style.display=scrId==='scr-cal'?'flex':'none';
+}
+function goStat(){ goScr('scr-stat','tab-stat'); renderStat(); }
+
+function renderCal(){
+  document.getElementById('cal-title').textContent=cy+'년 '+(cm+1)+'월';
+  const fd=new Date(cy,cm,1).getDay(), ld=new Date(cy,cm+1,0).getDate(), tod=new Date();
+  const byDay={};
+  TXS.forEach(t=>{
+    const d=new Date(t.date);
+    if(d.getFullYear()===cy&&d.getMonth()===cm){
+      const k=d.getDate(); if(!byDay[k])byDay[k]={inc:0,exp:0};
+      if(t.type==='inc')byDay[k].inc+=t.amount; else byDay[k].exp+=t.amount;
+    }
+  });
+  const mon=TXS.filter(t=>{const d=new Date(t.date);return d.getFullYear()===cy&&d.getMonth()===cm;});
+  const yr=TXS.filter(t=>new Date(t.date).getFullYear()===cy);
+  const mI=mon.filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0);
+  const mE=mon.filter(t=>t.type==='exp').reduce((s,t)=>s+t.amount,0);
+  const yI=yr.filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0);
+  const yE=yr.filter(t=>t.type==='exp').reduce((s,t)=>s+t.amount,0);
+  const mNet=mI-mE, yNet=yI-yE;
+
+  document.getElementById('s-inc').textContent='+'+mI.toLocaleString()+'원';
+  document.getElementById('s-exp').textContent=(mE>0?'-':'')+mE.toLocaleString()+'원';
+
+  const monEl=document.getElementById('s-mon');
+  monEl.textContent=(mNet===0?'':(mNet>0?'+':'-'))+Math.abs(mNet).toLocaleString()+'원';
+  monEl.style.color=mNet>0?'var(--blue)':(mNet<0?'var(--red)':'var(--text)');
+
+  const yrEl=document.getElementById('s-yr');
+  yrEl.textContent=(yNet===0?'':(yNet>0?'+':'-'))+Math.abs(yNet).toLocaleString()+'원';
+  yrEl.style.color=yNet>0?'var(--blue)':(yNet<0?'var(--red)':'var(--text)');
+
+  const g=document.getElementById('cal-grid'); g.innerHTML='';
+  for(let i=0;i<fd;i++){const el=document.createElement('div');el.className='cal-cell';el.style.pointerEvents='none';g.appendChild(el);}
+  for(let d=1;d<=ld;d++){
+    const dow2=(fd+d-1)%7, el=document.createElement('div');
+    let cls='cal-cell';
+    if(dow2===0)cls+=' is-sun'; if(dow2===6)cls+=' is-sat';
+    if(d===tod.getDate()&&cy===tod.getFullYear()&&cm===tod.getMonth())cls+=' is-today';
+    if(d===cd)cls+=' is-selected';
+    el.className=cls;
+    const num=document.createElement('div'); num.className='day-num'; num.textContent=d; el.appendChild(num);
+    if(byDay[d]){
+      if(byDay[d].exp>0){const s=document.createElement('div');s.className='day-exp';s.textContent=byDay[d].exp.toLocaleString();el.appendChild(s);}
+      if(byDay[d].inc>0){const s=document.createElement('div');s.className='day-inc';s.textContent=byDay[d].inc.toLocaleString();el.appendChild(s);}
+    }
+    el.onclick=()=>{cd=d;renderCal();}; g.appendChild(el);
+  }
+  renderTxList();
+}
+
+function goToday(){ const n=new Date();cy=n.getFullYear();cm=n.getMonth();cd=n.getDate();renderCal(); }
+
+function renderTxList(){
+  const dateStr=cy+'-'+String(cm+1).padStart(2,'0')+'-'+String(cd).padStart(2,'0');
+  const list=TXS.filter(t=>t.date===dateStr).sort((a,b)=>b.id-a.id);
+  const w=document.getElementById('tx-wrap');
+  if(!list.length){ w.innerHTML='<div class="empty"><div class="empty-ico">📋</div>이 날 거래가 없어요</div>'; return; }
+  const DOW2=['일','월','화','수','목','금','토'];
+  const dt=new Date(cy,cm,cd);
+  const label=cy+'년 '+(cm+1)+'월 '+cd+'일 ('+DOW2[dt.getDay()]+')';
+  let h='<div class="tx-group"><div class="tx-date">'+label+'</div><div class="tx-card">';
+  list.forEach(t=>{
+    const c=allCats(t.cat);
+    const cls=t.type==='exp'?'exp':'inc';
+    const timeStr=t.time||'';
+    h+='<div class="tx-row" onclick="openEdit('+t.id+')"><div class="tx-ico-wrap">'+c.e+'</div><div class="tx-info"><div class="tx-amt-line '+cls+'">'+WON+t.amount.toLocaleString()+'</div><div class="tx-cat">'+t.cat+'</div>'+(t.memo?'<div class="tx-memo-line">'+t.memo+'</div>':'')+'</div>'+(timeStr?'<div class="tx-time">'+timeStr+'</div>':'')+'</div>';
+  });
+  h+='</div></div>';
+  w.innerHTML=h;
+}
+
+function monthShift(d){ cm+=d; if(cm<0){cm=11;cy--;} if(cm>11){cm=0;cy++;} cd=1; renderCal(); }
+
+function renderStat(){
+  document.getElementById('stat-title').textContent=sy+'년 '+(sm+1)+'월';
+  const list=TXS.filter(t=>{const d=new Date(t.date);return d.getFullYear()===sy&&d.getMonth()===sm&&t.type===sType;});
+  const total=list.reduce((s,t)=>s+t.amount,0);
+  document.getElementById('stat-total-b').textContent=total.toLocaleString()+'원';
+  document.getElementById('stat-total-b').style.color=sType==='exp'?'var(--red)':'var(--blue)';
+  document.getElementById('stat-total-b').previousSibling.textContent=sType==='exp'?'지출 합계 ':'수입 합계 ';
+  const catMap={};
+  list.forEach(t=>{catMap[t.cat]=(catMap[t.cat]||0)+t.amount;});
+  const cats=Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
+  const pie=document.getElementById('pie'), leg=document.getElementById('leg');
+  pie.innerHTML=''; leg.innerHTML='';
+  if(!cats.length){
+    pie.innerHTML='<circle cx="95" cy="95" r="80" fill="#eee"/>';
+    document.getElementById('stat-rows').innerHTML='<div class="empty"><div class="empty-ico">📊</div>이 달 내역이 없어요</div>';
+    return;
+  }
+  let ang=-Math.PI/2;
+  cats.forEach(([cat,amt],i)=>{
+    const frac=amt/total, a=frac*2*Math.PI, ea=ang+a;
+    const cx=95,cy2=95,r=80, x1=cx+r*Math.cos(ang),y1=cy2+r*Math.sin(ang), x2=cx+r*Math.cos(ea),y2=cy2+r*Math.sin(ea), lg=a>Math.PI?1:0, col=COLORS[i%COLORS.length];
+    const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d','M'+cx+','+cy2+'L'+x1+','+y1+'A'+r+','+r+' 0 '+lg+',1 '+x2+','+y2+'Z');
+    p.setAttribute('fill',col); pie.appendChild(p);
+    if(frac>0.06){
+      const ma=ang+a/2, tx=document.createElementNS('http://www.w3.org/2000/svg','text');
+      tx.setAttribute('x',cx+r*.62*Math.cos(ma)); tx.setAttribute('y',cy2+r*.62*Math.sin(ma));
+      tx.setAttribute('text-anchor','middle'); tx.setAttribute('dominant-baseline','middle');
+      tx.setAttribute('fill','#fff'); tx.setAttribute('font-size','11'); tx.setAttribute('font-weight','700');
+      tx.textContent=(frac*100).toFixed(1)+'%'; pie.appendChild(tx);
+    }
+    leg.innerHTML+='<div class="leg-item"><div class="leg-dot" style="background:'+col+'"></div>'+cat+'</div>';
+    ang=ea;
+  });
+  document.getElementById('stat-rows').innerHTML=cats.map(([cat,amt],i)=>{
+    const c=allCats(cat), pct=total>0?amt/total*100:0, cnt=list.filter(t=>t.cat===cat).length;
+    return '<div class="stat-row"><div class="stat-ico">'+c.e+'</div><div class="stat-body"><div class="stat-cat">'+cat+'</div><div class="bar-bg"><div class="bar-fill" style="width:'+pct+'%;background:'+COLORS[i%COLORS.length]+'"></div></div></div><div class="stat-right"><div class="stat-cnt">'+cnt+'건</div><div class="stat-amt" style="color:'+(sType==='exp'?'var(--red)':'var(--blue)')+'">'+amt.toLocaleString()+'원</div><div class="stat-pct">'+pct.toFixed(1)+'%</div></div></div>';
+  }).join('');
+}
+function setStatType(t){ sType=t; document.getElementById('seg-exp').className=t==='exp'?'active':''; document.getElementById('seg-inc').className=t==='inc'?'active':''; renderStat(); }
+function statShift(d){ sm+=d; if(sm<0){sm=11;sy--;} if(sm>11){sm=0;sy++;} renderStat(); }
+
+function openModal(tx=null){
+  editId=tx?tx.id:null;
+  mType=tx?tx.type:'exp'; mCat=tx?tx.cat:''; amtStr=tx?String(tx.amount):'';
+  mSetType(mType); updAmt(); renderCatGrid();
+  document.getElementById('f-memo').value=tx?tx.memo||'':'';
+  const defDate=tx?tx.date:cy+'-'+String(cm+1).padStart(2,'0')+'-'+String(cd).padStart(2,'0');
+  document.getElementById('f-date').value=defDate;
+  document.getElementById('overlay').classList.add('open');
+}
+function openEdit(id){ openModal(TXS.find(t=>t.id===id)||null); }
+function bgClose(e){ if(e.target===document.getElementById('overlay'))closeModal(); }
+function closeModal(){ document.getElementById('overlay').classList.remove('open'); }
+
+function mSetType(t){
+  mType=t;
+  const top=document.getElementById('modal-top');
+  top.className='modal-top '+(t==='exp'?'is-exp':'is-inc');
+  document.getElementById('mbtn-exp').className='modal-type-btn'+(t==='exp'?' active':'');
+  document.getElementById('mbtn-inc').className='modal-type-btn'+(t==='inc'?' active':'');
+  mCat=''; renderCatGrid();
+}
+function kp(k){
+  if(amtStr.length>=9)return;
+  if(k==='00'){ if(!amtStr)return; amtStr+='00'; } else amtStr+=k;
+  updAmt();
+}
+function kdel(){ amtStr=amtStr.slice(0,-1); updAmt(); }
+function updAmt(){
+  const v=parseInt(amtStr)||0;
+  const sign=mType==='exp'?MINUS:'+';
+  document.getElementById('amt-disp').textContent=(v===0?'0':sign+v.toLocaleString());
+}
+function openCatSheet(){
+  document.getElementById('cat-sheet-title').textContent=(mType==='exp'?'지출':'수입')+' 카테고리 선택';
+  renderCatGrid();
+  document.getElementById('cat-sheet-overlay').classList.add('open');
+}
+function closeCatSheet(){
+  document.getElementById('cat-sheet-overlay').classList.remove('open');
+}
+function catSheetBgClose(e){
+  if(e.target===document.getElementById('cat-sheet-overlay')) closeCatSheet();
+}
+function renderCatGrid(){
+  const g=document.getElementById('cat-grid');
+  g.className='cat-grid-lg'; // 시트 안은 큰 버전 사용
+  g.innerHTML=CATS[mType].map(c=>'<button class="cat-btn'+(mCat===c.n?' sel':'')+'" onclick="selCat(\''+c.n+'\')"><span class="ci">'+c.e+'</span>'+c.n+'</button>').join('');
+  const trig=document.getElementById('cat-trigger');
+  if(mCat){ const ci=allCats(mCat); trig.textContent=ci.e+' '+mCat; trig.classList.add('selected'); }
+  else { trig.textContent='카테고리'; trig.classList.remove('selected'); }
+}
+function selCat(n){
+  mCat=n;
+  renderCatGrid();
+  closeCatSheet();
+}
+
+function saveTx(){
+  const amt=parseInt(amtStr)||0;
+  if(!amt){alert('금액을 입력해주세요');return;}
+  if(!mCat){alert('카테고리를 선택해주세요');return;}
+  const date=document.getElementById('f-date').value;
+  const memo=document.getElementById('f-memo').value.trim();
+  if(!date){alert('날짜를 입력해주세요');return;}
+  const now=new Date(), hh=now.getHours(), mm=now.getMinutes();
+  const ap=hh<12?'오전':'오후', h12=hh%12||12;
+  const timeStr=ap+' '+h12+':'+String(mm).padStart(2,'0');
+  if(editId){ const i=TXS.findIndex(t=>t.id===editId); if(i!==-1)TXS[i]={...TXS[i],type:mType,amount:amt,cat:mCat,date,memo}; }
+  else TXS.push({id:Date.now(),type:mType,amount:amt,cat:mCat,date,memo,time:timeStr});
+  save(); closeModal(); renderCal();
+}
+
+function togSwitch(el){ el.classList.toggle('on'); }
+
+// ─── 알림 기능 ───
+let alarmOn = localStorage.getItem('gb2_alarm') === 'on';
+function syncAlarmToggle(){
+  const t = document.getElementById('tog-alarm');
+  if(t) t.classList.toggle('on', alarmOn);
+}
+function toggleAlarm(){
+  if(!alarmOn){
+    // 켜는 경우: 권한 요청
+    if(!('Notification' in window)){
+      alert('이 브라우저는 알림 기능을 지원하지 않아요.');
+      return;
+    }
+    if(Notification.permission === 'granted'){
+      alarmOn = true;
+      localStorage.setItem('gb2_alarm','on');
+      syncAlarmToggle();
+      new Notification('가계부 알림', { body: '알림이 켜졌어요. 매일 기록을 잊지 마세요!' });
+    } else if(Notification.permission === 'denied'){
+      alert('알림 권한이 차단되어 있어요.\\n기기/브라우저 설정에서 알림 권한을 허용해주세요.');
+    } else {
+      Notification.requestPermission().then(perm=>{
+        if(perm === 'granted'){
+          alarmOn = true;
+          localStorage.setItem('gb2_alarm','on');
+          syncAlarmToggle();
+          new Notification('가계부 알림', { body: '알림이 켜졌어요. 매일 기록을 잊지 마세요!' });
+        } else {
+          alert('알림 권한이 거부되었어요.');
+        }
+      });
+    }
+  } else {
+    alarmOn = false;
+    localStorage.setItem('gb2_alarm','off');
+    syncAlarmToggle();
+  }
+}
+
+// ─── 카테고리 관리 ───
+let catManageType = 'exp';
+let pickedEmoji = '📦';
+let delModeIdx = -1;
+
+const EMOJI_DATA = [
+  {label:'음식·카페', list:['☕','🍽️','🍜','🍱','🍔','🍕','🍣','🍰','🧁','🥤','🍺','🍷','🥗','🍞']},
+  {label:'쇼핑·생활', list:['🛒','👗','👟','💄','👜','🧴','🧹','🏠','🛋️','🪴','🧺','🔌','🛁','🪥']},
+  {label:'교통·이동', list:['🚗','🚌','🚇','✈️','🛵','🚲','⛽','🚕','🚂','🛳️','🏍️','🛺']},
+  {label:'건강·의료', list:['🏥','💊','🩺','🧘','🏋️','🏃','🩹','🦷','👓','💉','🧬','🩻']},
+  {label:'교육·업무', list:['📚','📖','✏️','🖥️','💼','📝','🎓','📐','🗂️','📊','💡','🔬']},
+  {label:'여가·취미', list:['🎮','🎬','🎵','🎨','📷','🎭','⚽','🎯','🎲','🎸','📺','🏄']},
+  {label:'금융·공과금', list:['💡','💧','🔥','📱','💰','💳','🏦','📈','🧾','💸','🏷️','🪙']},
+  {label:'기타', list:['🎁','❤️','🐶','🐱','🌿','🌸','⭐','🔔','🎉','📦','🛠️','🌈']},
+];
+
+function buildEmojiPicker(){
+  const wrap = document.getElementById('ep-sections');
+  if(!wrap) return;
+  wrap.innerHTML = EMOJI_DATA.map(sec =>
+    '<div class="ep-sec-label">'+sec.label+'</div>' +
+    '<div class="ep-grid">' +
+    sec.list.map(e =>
+      '<button type="button" class="'+(e===pickedEmoji?'picked':'')+'" onclick="pickEmoji(\''+e+'\')">'+e+'</button>'
+    ).join('') +
+    '</div>'
+  ).join('');
+}
+
+function openCatManage(type){
+  catManageType = type;
+  document.getElementById('cat-manage-title').textContent = (type==='exp'?'지출':'수입')+' 카테고리 관리';
+  delModeIdx = -1;
+  pickedEmoji = '📦';
+  document.getElementById('cm-emoji-btn').textContent = '📦';
+  document.getElementById('new-cat-name').value = '';
+  document.getElementById('emoji-picker').classList.remove('open');
+  renderCatManageList();
+  buildEmojiPicker();
+  document.getElementById('cat-overlay').classList.add('open');
+}
+function closeCatManage(){
+  document.getElementById('cat-overlay').classList.remove('open');
+  document.getElementById('emoji-picker').classList.remove('open');
+}
+function catBgClose(e){ if(e.target===document.getElementById('cat-overlay')) closeCatManage(); }
+
+function toggleEmojiPicker(){
+  buildEmojiPicker();
+  document.getElementById('emoji-picker').classList.toggle('open');
+}
+function pickEmoji(e){
+  pickedEmoji = e;
+  document.getElementById('cm-emoji-btn').textContent = e;
+  document.querySelectorAll('#ep-sections button').forEach(b => b.classList.toggle('picked', b.textContent===e));
+  setTimeout(()=>document.getElementById('emoji-picker').classList.remove('open'), 150);
+}
+
+let longPressTimer = null;
+
+function renderCatManageList(){
+  const list = CATS[catManageType];
+  const wrap = document.getElementById('cat-manage-list');
+  wrap.innerHTML = list.map((c,i) =>
+    '<div class="cm-cat-item'+(delModeIdx===i?' del-mode':'')+'" data-idx="'+i+'">' +
+    '<span class="cm-ico">'+c.e+'</span>' +
+    '<span style="font-size:11px;text-align:center;line-height:1.2;color:#000">'+c.n+'</span>' +
+    '<button class="cm-del" data-idx="'+i+'">✕</button>' +
+    '</div>'
+  ).join('');
+
+  wrap.querySelectorAll('.cm-cat-item').forEach(el => {
+    const i = parseInt(el.dataset.idx);
+
+    // 터치 시작 - 기본 동작(복사 메뉴 등) 차단
+    el.addEventListener('touchstart', e=>{
+      e.preventDefault();
+      longPressTimer = setTimeout(()=>{ startDelMode(i); }, 500);
+    }, {passive:false});
+    el.addEventListener('touchend', e=>{
+      e.preventDefault();
+      clearTimeout(longPressTimer);
+    }, {passive:false});
+    el.addEventListener('touchmove', ()=>{ clearTimeout(longPressTimer); }, {passive:true});
+
+    // 마우스 (데스크톱/미리보기)
+    el.addEventListener('mousedown', ()=>{
+      longPressTimer = setTimeout(()=>{ startDelMode(i); }, 500);
+    });
+    el.addEventListener('mouseup', ()=>{ clearTimeout(longPressTimer); });
+    el.addEventListener('mouseleave', ()=>{ clearTimeout(longPressTimer); });
+
+    // 탭 - 삭제모드 해제
+    el.addEventListener('click', ()=>{
+      if(delModeIdx >= 0){ delModeIdx=-1; renderCatManageList(); }
+    });
+  });
+
+  // 삭제 버튼
+  wrap.querySelectorAll('.cm-del').forEach(btn => {
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      confirmDel(parseInt(btn.dataset.idx));
+    });
+  });
+
+  // 외부 터치/클릭 시 삭제모드 취소 - 한 번만 등록
+  if(!wrap._outsideHandler){
+    wrap._outsideHandler = true;
+    document.getElementById('cat-overlay').addEventListener('touchstart', e=>{
+      if(delModeIdx>=0 && !e.target.closest('.cm-cat-item')){
+        delModeIdx=-1; renderCatManageList();
+      }
+    }, {passive:true});
+    document.getElementById('cat-overlay').addEventListener('click', e=>{
+      if(delModeIdx>=0 && !e.target.closest('.cm-cat-item')){
+        delModeIdx=-1; renderCatManageList();
+      }
+    });
+  }
+}
+
+function startDelMode(i){
+  // 진동 피드백 (지원 기기)
+  if(navigator.vibrate) navigator.vibrate(40);
+  delModeIdx=i; renderCatManageList();
+}
+function confirmDel(i){
+  const list=CATS[catManageType];
+  if(list.length<=1){ alert('최소 1개 이상 필요해요'); return; }
+  list.splice(i,1);
+  saveCats(); delModeIdx=-1; renderCatManageList();
+}
+
+function addCategory(){
+  const name=document.getElementById('new-cat-name').value.trim();
+  if(!name){ alert('이름을 입력해주세요'); return; }
+  if(CATS[catManageType].some(c=>c.n===name)){ alert('이미 있는 카테고리예요'); return; }
+  CATS[catManageType].push({e:pickedEmoji||'📦',n:name});
+  saveCats(); renderCatManageList();
+  pickedEmoji='📦'; document.getElementById('cm-emoji-btn').textContent='📦';
+  document.getElementById('new-cat-name').value='';
+  document.getElementById('emoji-picker').classList.remove('open');
+}
+// ─── 백업 모달 ───
+function openBackupModal(){ document.getElementById('backup-overlay').classList.add('open'); }
+function closeBackupModal(){ document.getElementById('backup-overlay').classList.remove('open'); }
+function backupBgClose(e){ if(e.target===document.getElementById('backup-overlay')) closeBackupModal(); }
+
+function smartDownload(content, filename, mime){
+  // UTF-8 BOM 추가 → 한글 깨짐 방지
+  const blob = new Blob(['﻿' + content], {type: mime + ';charset=utf-8'});
+
+  // ① Web Share API (iOS 15+ / Android Chrome) — 공유 시트로 "파일에 저장" 가능
+  if (typeof navigator.share === 'function' && typeof navigator.canShare === 'function') {
+    const file = new File([blob], filename, {type: mime});
+    if (navigator.canShare({files: [file]})) {
+      navigator.share({files: [file], title: filename})
+        .catch(err => { if (err.name !== 'AbortError') _dlFallback(blob, filename); });
+      return;
+    }
+  }
+  _dlFallback(blob, filename);
+}
+
+function _dlFallback(blob, filename){
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const url = URL.createObjectURL(blob);
+  if (isIOS) {
+    // iOS Safari: 새 탭으로 열기 → 공유 버튼(□↑) → 파일에 저장
+    const w = window.open(url, '_blank');
+    if (!w) {
+      alert('팝업이 차단됐어요.\n브라우저 설정에서 이 사이트의 팝업을 허용해주세요.');
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } else {
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.style.display = 'none';
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 300);
+  }
+}
+
+function exportJSON(){
+  if(!TXS.length){ alert('저장할 거래 내역이 없어요'); return; }
+  const data = { transactions: TXS, categories: CATS, exportedAt: new Date().toISOString() };
+  const content = JSON.stringify(data, null, 2);
+  smartDownload(content, '가계부_백업_' + fmtFileDate() + '.json', 'application/json');
+}
+
+function exportObsidian(){
+  if(!TXS.length){ alert('저장할 거래 내역이 없어요'); return; }
+
+  // 전체를 하나의 MD 파일로
+  const sorted = [...TXS].sort((a,b)=>a.date.localeCompare(b.date));
+
+  // 월별 그룹
+  const byMonth = {};
+  sorted.forEach(t=>{
+    const key=t.date.slice(0,7);
+    if(!byMonth[key]) byMonth[key]=[];
+    byMonth[key].push(t);
+  });
+
+  const DOW=['일','월','화','수','목','금','토'];
+  let md = '# 가계부\n\n';
+  md += '*내보낸 날짜: ' + new Date().toLocaleString('ko-KR') + '*\n\n';
+
+  Object.keys(byMonth).sort().reverse().forEach(month=>{
+    const [y,m] = month.split('-');
+    const list = byMonth[month];
+    const totalExp = list.filter(t=>t.type==='exp').reduce((s,t)=>s+t.amount,0);
+    const totalInc = list.filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0);
+
+    md += '## ' + y + '년 ' + parseInt(m) + '월\n\n';
+    md += '> 💰 수입 **₩' + totalInc.toLocaleString() + '**  |  ';
+    md += '💸 지출 **₩' + totalExp.toLocaleString() + '**  |  ';
+    md += '잔액 **₩' + (totalInc-totalExp).toLocaleString() + '**\n\n';
+
+    // 날짜별
+    const byDay={};
+    list.forEach(t=>{ if(!byDay[t.date]) byDay[t.date]=[]; byDay[t.date].push(t); });
+
+    Object.keys(byDay).sort().forEach(date=>{
+      const d=new Date(date+'T00:00:00');
+      md += '### ' + parseInt(m) + '월 ' + d.getDate() + '일 (' + DOW[d.getDay()] + ')\n\n';
+      md += '| 분류 | 카테고리 | 금액 | 메모 |\n';
+      md += '|:----:|:--------:|-----:|------|\n';
+      byDay[date].forEach(t=>{
+        const cat=allCats(t.cat);
+        md += '| '+(t.type==='exp'?'지출':'수입')+' | '+cat.e+' '+t.cat+' | ₩'+t.amount.toLocaleString()+' | '+(t.memo||'-')+' |\n';
+      });
+      md += '\n';
+    });
+  });
+
+  smartDownload(md, '가계부_' + fmtFileDate() + '.md', 'text/markdown');
+}
+
+function importJSON(e){
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      const txs=data.transactions||data;
+      if(!Array.isArray(txs)) throw new Error('형식 오류');
+      if(!confirm('현재 데이터를 불러온 파일로 교체할까요?\n(현재 데이터는 삭제됩니다)')) return;
+      TXS=txs; save();
+      if(data.categories&&data.categories.exp&&data.categories.inc){
+        CATS.exp=data.categories.exp; CATS.inc=data.categories.inc; saveCats();
+      }
+      renderCal(); closeBackupModal();
+      alert('복원 완료! 거래 '+TXS.length+'건이 불러와졌어요.');
+    }catch(err){ alert('파일을 읽을 수 없어요.\nJSON 백업 파일을 선택해주세요.'); }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+function fmtFileDate(){
+  const n=new Date();
+  return n.getFullYear()+String(n.getMonth()+1).padStart(2,'0')+String(n.getDate()).padStart(2,'0');
+}
+function exportData(){ exportJSON(); }
+function clearAll(){ if(confirm('모든 데이터를 삭제할까요?')){TXS=[];save();renderCal();alert('삭제되었습니다.');} }
+
+function initSample(){
+  if(TXS.length) return;
+  const n=new Date();
+  const ds=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
+  TXS=[
+    {id:1,type:'exp',amount:1800,cat:'카페',date:ds,memo:'신용카드',time:'오후 2:00'},
+    {id:2,type:'exp',amount:9660,cat:'교육',date:ds,memo:'채아 간식',time:'오후 4:00'}
+  ];
+  save();
+}
+
+document.addEventListener('DOMContentLoaded',function(){ initSample(); renderCal(); syncAlarmToggle(); });
+</script>
+</body>
+</html>
