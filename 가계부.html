@@ -1179,14 +1179,6 @@ html, body {
 
     <div class="backup-section-label">불러오기</div>
     <div class="backup-card">
-      <div class="backup-row" onclick="document.getElementById('import-excel-file').click()">
-        <div class="backup-ico">📊</div>
-        <div class="backup-info">
-          <div class="backup-name">Excel 가져오기 <span class="backup-badge">XLS</span></div>
-          <div class="backup-desc">은행·카드 명세서 자동 분류</div>
-        </div>
-        <span class="set-arr">›</span>
-      </div>
       <div class="backup-row" onclick="document.getElementById('import-file').click()">
         <div class="backup-ico">📥</div>
         <div class="backup-info">
@@ -1197,27 +1189,12 @@ html, body {
       </div>
     </div>
     <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)">
-    <input type="file" id="import-excel-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="startExcelImport(event)">
 
     <div style="padding:14px 18px 8px 18px;font-size:11px;color:var(--sub);line-height:1.7">
       💡 <b>iOS 15+</b>: 공유 시트가 자동으로 열려요. <b>파일에 저장</b>을 선택하세요.<br>
       💡 구버전 iOS: 새 탭이 열리면 공유 버튼(□↑) → <b>파일에 저장</b>을 탭하세요.<br>
       📓 Obsidian MD는 Vault 폴더에 저장하면 바로 노트로 열려요.
     </div>
-  </div>
-</div>
-
-<!-- Excel 가져오기 모달 -->
-<div class="overlay" id="excel-overlay" onclick="excelOverlayClose(event)">
-  <div class="sheet cm-sheet">
-    <div class="handle"></div>
-    <div class="cm-header" style="flex-shrink:0">
-      <button class="modal-close-btn-dark" onclick="closeExcelModal()">✕</button>
-      <span class="cat-manage-title" id="excel-modal-title">Excel 가져오기</span>
-      <div style="width:30px"></div>
-    </div>
-    <div id="excel-modal-body" style="flex:1;overflow-y:auto;padding:12px 16px 20px"></div>
-    <div style="height:env(safe-area-inset-bottom);flex-shrink:0"></div>
   </div>
 </div>
 
@@ -2183,223 +2160,6 @@ function exportObsidian(){
   }
   _dlFallback(blob, fname);
 }
-
-// ─── Excel 가져오기 ───
-const XL_DATE_H = ['거래일','날짜','일자','이용일','승인일','처리일','date','transaction'];
-const XL_AMT_H  = ['거래금액','이용금액','금액','amount','원금'];
-const XL_EXP_H  = ['출금','지출','출금액','찾으신금액','출금금액','debit','인출'];
-const XL_INC_H  = ['입금','수입','입금액','맡기신금액','입금금액','credit'];
-const XL_DESC_H = ['가맹점','내용','적요','기재내용','내역','메모','항목','description','거래처','상호','merchant','내용(상세)'];
-
-const XL_CAT_KW = {
-  '카페': ['카페','cafe','coffee','커피','스타벅스','이디야','투썸','할리스','컴포즈','빽다방','폴바셋','메가커피'],
-  '식비': ['식당','음식점','맥도날드','롯데리아','버거킹','피자헛','도미노','치킨','bbq','bhc','교촌','굽네','편의점','cu','gs25','세븐일레븐','이마트24','미니스톱','배달의민족','배민','요기요','쿠팡이츠','마켓컬리','국밥','분식','김밥','삼겹살','이자카야','초밥','라멘','파스타','식사','점심','저녁','중식당','한식'],
-  '쇼핑': ['쿠팡','11번가','지마켓','옥션','위메프','티몬','인터파크','다이소','코스트코','아마존','amazon','이케아','ikea','오늘의집','홈쇼핑','coupang'],
-  '교통': ['지하철','버스','택시','카카오t','카카오모빌리티','uber','타다','ktx','srt','korail','코레일','고속버스','주유','gs칼텍스','sk주유','현대오일뱅크','s-oil','주차','렌트','항공','공항'],
-  '의료': ['병원','의원','한의원','치과','약국','정형외과','내과','피부과','안과','소아과','응급','클리닉','보건소'],
-  '여가': ['영화','cgv','메가박스','롯데시네마','넷플릭스','netflix','왓챠','wavve','스포티파이','spotify','게임','스팀','steam','노래방','볼링','골프','헬스','피트니스','에버랜드','롯데월드','공연','콘서트'],
-  '주거': ['월세','관리비','아파트관리','임대','부동산','인테리어'],
-  '공과금': ['한전','전기요금','도시가스','수도요금','kt','skt','lgu','lg유플러스','통신요금','인터넷요금','케이블'],
-  '교육': ['학원','과외','교재','클래스101','인프런','유데미','udemy','패스트캠퍼스'],
-  '의류': ['의류','패션','신발','가방','나이키','nike','아디다스','adidas','무신사','ably','zara','uniqlo','유니클로'],
-  '미용': ['미용실','헤어','네일','피부관리','화장품','올리브영']
-};
-const XL_INC_KW = {
-  '급여': ['급여','월급','임금','salary','wage','연봉'],
-  '투자': ['이자','배당','수익','펀드','주식','투자'],
-  '용돈': ['용돈','송금'],
-};
-
-let xlD = { headers:[], rows:[], colDate:-1, colAmt:-1, colInc:-1, colExp:-1, colDesc:-1, splitMode:false };
-
-function xlFindCol(h, kws){ let r=-1; kws.some(k=>{ const i=h.findIndex(x=>x.toLowerCase().includes(k.toLowerCase())); if(i>=0){r=i;return true;} }); return r; }
-
-function xlAutoDetect(headers){
-  const h = headers.map(x=>String(x||'').trim());
-  const colDate = xlFindCol(h, XL_DATE_H);
-  const colInc  = xlFindCol(h, XL_INC_H);
-  const colExp  = xlFindCol(h, XL_EXP_H);
-  const colAmt  = (colInc>=0||colExp>=0) ? -1 : xlFindCol(h, XL_AMT_H);
-  const colDesc = xlFindCol(h, XL_DESC_H);
-  return { colDate, colAmt, colInc, colExp, colDesc, splitMode: colInc>=0||colExp>=0 };
-}
-
-function xlParseDate(val){
-  if(!val) return null;
-  if(val instanceof Date) return val.toISOString().slice(0,10);
-  const s = String(val).trim();
-  const m1 = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if(m1) return m1[1]+'-'+m1[2]+'-'+m1[3];
-  if(/^\d{8}$/.test(s)) return s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8);
-  const m2 = s.match(/^(\d{4})[./년](\d{1,2})[./월](\d{1,2})/);
-  if(m2) return m2[1]+'-'+m2[2].padStart(2,'0')+'-'+m2[3].padStart(2,'0');
-  const d = new Date(s);
-  if(!isNaN(d)) return d.toISOString().slice(0,10);
-  return null;
-}
-
-function xlParseAmt(val){
-  if(val===null||val===undefined||val==='') return 0;
-  if(typeof val==='number') return val;
-  const n = parseFloat(String(val).replace(/[₩,\s원]/g,''));
-  return isNaN(n)?0:n;
-}
-
-function xlAutoCat(desc, type){
-  if(!desc) return type==='exp'?'기타':'기타수입';
-  const low = desc.toLowerCase();
-  const map = type==='exp'?XL_CAT_KW:XL_INC_KW;
-  for(const [cat,kws] of Object.entries(map)){
-    const catList = type==='exp'?CATS.exp:CATS.inc;
-    if(!catList.find(c=>c.n===cat)) continue;
-    if(kws.some(k=>low.includes(k.toLowerCase()))) return cat;
-  }
-  return type==='exp'?'기타':'기타수입';
-}
-
-function loadXLSX(cb){
-  if(window.XLSX){cb();return;}
-  const s=document.createElement('script');
-  s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-  s.onload=cb;
-  s.onerror=()=>alert('Excel 파서를 불러오지 못했어요.\n인터넷 연결을 확인해주세요.');
-  document.head.appendChild(s);
-}
-
-function startExcelImport(e){
-  const file=e.target.files[0]; if(!file) return;
-  e.target.value='';
-  loadXLSX(()=>{
-    const reader=new FileReader();
-    reader.onload=ev=>{
-      try{
-        const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true,dateNF:'yyyy-mm-dd'});
-        const ws=wb.Sheets[wb.SheetNames[0]];
-        const data=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'yyyy-mm-dd'});
-        if(!data.length){alert('데이터가 없어요');return;}
-        let hi=0;
-        for(let i=0;i<Math.min(6,data.length);i++){
-          if(data[i].some(c=>c!==null&&c!==undefined&&String(c).trim())){hi=i;break;}
-        }
-        xlD.headers=(data[hi]||[]).map(h=>String(h||'').trim());
-        xlD.rows=data.slice(hi+1).filter(r=>r.some(c=>c!==null&&c!==undefined&&String(c).trim()));
-        Object.assign(xlD, xlAutoDetect(xlD.headers));
-        showExcelModal();
-      }catch(err){alert('파일을 읽지 못했어요: '+err.message);}
-    };
-    reader.readAsArrayBuffer(file);
-  });
-}
-
-function showExcelModal(){
-  const h=xlD.headers;
-  const none='<option value="-1">(선택 안함)</option>';
-  const opts=sel=>none+h.map((x,i)=>'<option value="'+i+'"'+(i===sel?' selected':'')+'>'+x+'</option>').join('');
-  document.getElementById('excel-modal-title').textContent='Excel 열 매핑';
-  document.getElementById('excel-modal-body').innerHTML=
-    '<div style="font-size:12px;color:var(--sub);margin-bottom:14px;line-height:1.8">'+
-      '📊 <b>'+xlD.rows.length+'행</b> 감지 · 열 지정을 확인하고 <b>미리보기</b>를 눌러주세요.'+
-    '</div>'+
-    '<div class="f-label">날짜 열</div>'+
-    '<select class="f-input" id="xc-date" style="margin-bottom:12px">'+opts(xlD.colDate)+'</select>'+
-    '<div class="f-label" style="margin-bottom:6px">금액 방식</div>'+
-    '<div style="display:flex;gap:6px;margin-bottom:12px">'+
-      '<button class="sct-all-btn'+(xlD.splitMode?'':' active')+'" id="xbt-single" onclick="setXlAmtMode(false)">단일 금액 열</button>'+
-      '<button class="sct-all-btn'+(xlD.splitMode?' active':'')+'" id="xbt-split" onclick="setXlAmtMode(true)">입출금 구분</button>'+
-    '</div>'+
-    '<div id="xl-single-area"'+(xlD.splitMode?' style="display:none"':'')+'>'+
-      '<div class="f-label">금액 열 <span style="font-weight:400;color:var(--sub)">(음수=지출, 양수=수입)</span></div>'+
-      '<select class="f-input" id="xc-amt" style="margin-bottom:12px">'+opts(xlD.colAmt)+'</select>'+
-    '</div>'+
-    '<div id="xl-split-area"'+(xlD.splitMode?'':' style="display:none"')+'>'+
-      '<div class="f-label">출금 열 (지출)</div>'+
-      '<select class="f-input" id="xc-exp" style="margin-bottom:8px">'+opts(xlD.colExp)+'</select>'+
-      '<div class="f-label">입금 열 (수입)</div>'+
-      '<select class="f-input" id="xc-inc" style="margin-bottom:12px">'+opts(xlD.colInc)+'</select>'+
-    '</div>'+
-    '<div class="f-label">내용 열 <span style="font-weight:400;color:var(--sub)">(카테고리 자동 분류·메모 저장)</span></div>'+
-    '<select class="f-input" id="xc-desc" style="margin-bottom:16px">'+opts(xlD.colDesc)+'</select>'+
-    '<button class="save-btn" style="margin:0;width:100%;background:#f0f7ff;color:var(--blue);font-size:14px" onclick="previewExcelImport()">미리보기</button>'+
-    '<div id="xl-preview" style="margin-top:14px"></div>';
-  document.getElementById('excel-overlay').classList.add('open');
-}
-
-function setXlAmtMode(isSplit){
-  xlD.splitMode=isSplit;
-  document.getElementById('xbt-single').className='sct-all-btn'+(isSplit?'':' active');
-  document.getElementById('xbt-split').className='sct-all-btn'+(isSplit?' active':'');
-  document.getElementById('xl-single-area').style.display=isSplit?'none':'';
-  document.getElementById('xl-split-area').style.display=isSplit?'':'none';
-}
-
-function xlReadCols(){
-  xlD.colDate=parseInt(document.getElementById('xc-date').value);
-  xlD.colDesc=parseInt(document.getElementById('xc-desc').value);
-  if(xlD.splitMode){
-    xlD.colExp=parseInt(document.getElementById('xc-exp').value);
-    xlD.colInc=parseInt(document.getElementById('xc-inc').value);
-    xlD.colAmt=-1;
-  } else {
-    xlD.colAmt=parseInt(document.getElementById('xc-amt').value);
-    xlD.colExp=-1; xlD.colInc=-1;
-  }
-}
-
-function xlBuildList(){
-  xlReadCols();
-  const list=[];
-  xlD.rows.forEach(row=>{
-    const dateStr=xlParseDate(xlD.colDate>=0?row[xlD.colDate]:null);
-    if(!dateStr) return;
-    const desc=xlD.colDesc>=0?String(row[xlD.colDesc]||'').trim():'';
-    if(xlD.splitMode){
-      if(xlD.colExp>=0){ const a=Math.abs(xlParseAmt(row[xlD.colExp])); if(a>0) list.push({type:'exp',amount:a,date:dateStr,cat:xlAutoCat(desc,'exp'),memo:desc}); }
-      if(xlD.colInc>=0){ const a=Math.abs(xlParseAmt(row[xlD.colInc])); if(a>0) list.push({type:'inc',amount:a,date:dateStr,cat:xlAutoCat(desc,'inc'),memo:desc}); }
-    } else {
-      if(xlD.colAmt<0) return;
-      const raw=xlParseAmt(row[xlD.colAmt]);
-      if(raw===0) return;
-      const type=raw<0?'exp':'inc';
-      list.push({type,amount:Math.abs(raw),date:dateStr,cat:xlAutoCat(desc,type),memo:desc});
-    }
-  });
-  return list;
-}
-
-function previewExcelImport(){
-  const list=xlBuildList();
-  if(!list.length){document.getElementById('xl-preview').innerHTML='<div style="color:var(--red);font-size:13px;margin-top:8px">가져올 데이터가 없어요. 열 설정을 확인해주세요.</div>';return;}
-  const cats={};
-  list.forEach(t=>{cats[t.cat]=(cats[t.cat]||0)+1;});
-  const catBadges=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([c,n])=>'<span style="display:inline-flex;align-items:center;gap:3px;background:var(--border);border-radius:99px;padding:2px 8px;font-size:11px;margin:2px">'+allCats(c).e+' '+c+' ('+n+'건)</span>').join('');
-  const expTotal=list.filter(t=>t.type==='exp').reduce((s,t)=>s+t.amount,0);
-  const incTotal=list.filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0);
-  const pRows=list.slice(0,5).map(t=>'<div style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center"><span style="color:var(--sub);flex-shrink:0;font-size:11px">'+t.date+'</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+allCats(t.cat).e+' '+(t.memo||t.cat)+'</span><span style="flex-shrink:0;font-weight:600;color:'+(t.type==='exp'?'var(--red)':'var(--blue)')+';">'+(t.type==='exp'?'-':'+')+t.amount.toLocaleString()+'</span></div>').join('');
-  document.getElementById('xl-preview').innerHTML=
-    '<div style="background:#f0f7ff;border-radius:12px;padding:12px 14px;margin-bottom:12px">'+
-      '<div style="font-size:15px;font-weight:700;margin-bottom:3px">'+list.length+'건 가져올 수 있어요</div>'+
-      '<div style="font-size:12px;color:var(--sub)">💰 수입 '+incTotal.toLocaleString()+'원 · 💸 지출 '+expTotal.toLocaleString()+'원</div>'+
-    '</div>'+
-    '<div style="font-size:11px;font-weight:700;color:var(--sub);margin-bottom:6px">카테고리 분류</div>'+
-    '<div style="margin-bottom:14px;line-height:2.2">'+catBadges+'</div>'+
-    '<div style="font-size:11px;font-weight:700;color:var(--sub);margin-bottom:4px">미리보기 (앞 '+Math.min(list.length,5)+'건)</div>'+
-    pRows+
-    '<div style="margin-top:14px">'+
-      '<button class="save-btn" style="margin:0;width:100%" onclick="doExcelImport()">가져오기 ('+list.length+'건)</button>'+
-    '</div>';
-}
-
-function doExcelImport(){
-  const list=xlBuildList();
-  if(!list.length){alert('가져올 데이터가 없어요');return;}
-  list.forEach(t=>{ TXS.push({id:Date.now()+Math.random(),type:t.type,amount:t.amount,cat:t.cat,date:t.date,memo:t.memo,time:''}); });
-  save(); renderCal();
-  closeExcelModal();
-  alert('✅ '+list.length+'건을 가져왔어요!');
-}
-
-function closeExcelModal(){ document.getElementById('excel-overlay').classList.remove('open'); }
-function excelOverlayClose(e){ if(e.target===document.getElementById('excel-overlay')) closeExcelModal(); }
 
 function importJSON(e){
   const file=e.target.files[0]; if(!file) return;
