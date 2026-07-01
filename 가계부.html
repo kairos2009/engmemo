@@ -934,7 +934,6 @@ html, body {
   <div class="set-group">
     <div class="set-card">
       <div class="set-row" onclick="openBackupModal()"><span class="set-ico">💾</span><span class="set-lbl">수동 백업 / 복원</span><span class="set-arr">›</span></div>
-      <div class="set-row" onclick="clearAll()"><span class="set-ico">🗑️</span><span class="set-lbl" style="color:var(--red)">전체 데이터 삭제</span><span class="set-arr" style="color:var(--red)">›</span></div>
       <div class="set-row" onclick="resetAll()"><span class="set-ico">🔄</span><span class="set-lbl" style="color:var(--red)">전체 초기화</span><span class="set-arr" style="color:var(--red)">›</span></div>
     </div>
   </div>
@@ -1806,7 +1805,6 @@ function fmtFileDate(){
   return n.getFullYear()+String(n.getMonth()+1).padStart(2,'0')+String(n.getDate()).padStart(2,'0');
 }
 function exportData(){ exportJSON(); }
-function clearAll(){ if(confirm('모든 데이터를 삭제할까요?')){TXS=[];save();renderCal();alert('삭제되었습니다.');} }
 
 function resetAll(){
   if(!confirm('앱을 초기 상태로 완전히 초기화할까요?\n거래내역, 고정지출, 카테고리, 설정이 모두 삭제됩니다.')) return;
