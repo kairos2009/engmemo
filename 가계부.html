@@ -268,7 +268,6 @@ html, body {
   font-size: 14px;
 }
 .summary2 > div { display: flex; flex-direction: column; gap: 4px; }
-.sm2-right { text-align: right; }
 
 /* ─── 새 달력 래퍼 (카드 없이) ─── */
 .cal-wrap2 { padding: 0 12px; }
@@ -867,10 +866,6 @@ html, body {
       <div>수입 <span class="s-income" id="s-inc">+0원</span></div>
       <div>지출 <span class="s-expense" id="s-exp">-0원</span></div>
     </div>
-    <div class="sm2-right">
-      <div><span id="s-mon-label">월간 지출</span> <span id="s-mon">0원</span></div>
-      <div id="yr-row">연간 지출 <span id="s-yr">0원</span></div>
-    </div>
   </div>
 
   <div class="cal-wrap2">
@@ -925,7 +920,6 @@ html, body {
           <span class="set-arr">›</span>
         </div>
       </div>
-      <div class="set-row" onclick="togYrSwitch()"><span class="set-ico">📆</span><span class="set-lbl">연간 지출 표시</span><div class="toggle on" id="tog-yr"></div></div>
     </div>
   </div>
   <div class="set-group">
@@ -1229,10 +1223,6 @@ function renderCal(){
     if(r.type==='exp') byDayPlanned[day].exp+=r.amount;
     else byDayPlanned[day].inc+=r.amount;
   });
-  const mon=TXS.filter(t=>inMonthRange(t.date,cy,cm));
-  const yr=TXS.filter(t=>new Date(t.date).getFullYear()===cy);
-  const mNet=mon.filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0)-mon.filter(t=>t.type==='exp').reduce((s,t)=>s+t.amount,0);
-  const yNet=yr.filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0)-yr.filter(t=>t.type==='exp').reduce((s,t)=>s+t.amount,0);
   const selDate=cy+'-'+String(cm+1).padStart(2,'0')+'-'+String(cd).padStart(2,'0');
   const dayTxs=TXS.filter(t=>t.date===selDate);
   const dI=dayTxs.filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0);
@@ -1241,14 +1231,6 @@ function renderCal(){
   document.getElementById('s-inc').textContent=dI>0?'+'+dI.toLocaleString()+'원':'0원';
   document.getElementById('s-exp').textContent=dE>0?'-'+dE.toLocaleString()+'원':'0원';
 
-  const monEl=document.getElementById('s-mon');
-  monEl.textContent=(mNet===0?'':(mNet>0?'+':'-'))+Math.abs(mNet).toLocaleString()+'원';
-  monEl.style.color=mNet>0?'var(--blue)':(mNet<0?'var(--red)':'var(--text)');
-  document.getElementById('s-mon-label').textContent=monthStart===1?'월간 지출':'월간 지출(전월 '+monthStart+'일~당월 '+(monthStart-1)+'일)';
-
-  const yrEl=document.getElementById('s-yr');
-  yrEl.textContent=(yNet===0?'':(yNet>0?'+':'-'))+Math.abs(yNet).toLocaleString()+'원';
-  yrEl.style.color=yNet>0?'var(--blue)':(yNet<0?'var(--red)':'var(--text)');
 
   const g=document.getElementById('cal-grid'); g.innerHTML='';
   for(let i=0;i<fd;i++){const el=document.createElement('div');el.className='cal-cell';el.style.pointerEvents='none';g.appendChild(el);}
@@ -1416,7 +1398,6 @@ function saveTx(){
 }
 
 // ─── 설정 상태 ───
-let showYr = localStorage.getItem('gb2_yr') !== 'off';
 let monthStart = parseInt(localStorage.getItem('gb2_ms') || '1');
 let RECURS = [];
 let RECUR_LOG = {};
@@ -1425,18 +1406,6 @@ try { RECUR_LOG = JSON.parse(localStorage.getItem('gb2_rlog') || '{}'); } catch(
 function saveRecurs(){ try{ localStorage.setItem('gb2_recur', JSON.stringify(RECURS)); }catch(e){} }
 function saveRecurLog(){ try{ localStorage.setItem('gb2_rlog', JSON.stringify(RECUR_LOG)); }catch(e){} }
 
-// ─── 연간 합계 토글 ───
-function syncYrToggle(){
-  const tog = document.getElementById('tog-yr');
-  if(tog) tog.classList.toggle('on', showYr);
-  const row = document.getElementById('yr-row');
-  if(row) row.style.display = showYr ? '' : 'none';
-}
-function togYrSwitch(){
-  showYr = !showYr;
-  localStorage.setItem('gb2_yr', showYr ? 'on' : 'off');
-  syncYrToggle();
-}
 
 // ─── 월 시작일자 ───
 function syncMsLabel(){
@@ -1816,7 +1785,6 @@ function resetAll(){
   RECUR_LOG={}; saveRecurLog();
   CATS={ exp:[...DEFAULT_CATS.exp], inc:[...DEFAULT_CATS.inc] }; saveCats();
   monthStart=1; localStorage.setItem('gb2_ms','1'); syncMsLabel();
-  showYr=true; localStorage.setItem('gb2_yr','on'); syncYrToggle();
   renderCal();
   alert('초기화가 완료되었습니다.');
 }
@@ -1824,7 +1792,6 @@ function resetAll(){
 document.addEventListener('DOMContentLoaded',function(){
   applyRecurring();
   renderCal();
-  syncYrToggle();
   syncMsLabel();
 });
 
