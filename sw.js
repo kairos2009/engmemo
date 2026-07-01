@@ -1,4 +1,4 @@
-const CACHE = 'gb2-v2';
+const CACHE = 'progrea26.7.1._01_01';
 const ASSETS = [
   './가계부.html',
   './manifest.json',
