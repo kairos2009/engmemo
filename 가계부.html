@@ -1233,12 +1233,13 @@ function renderCal(){
   const yr=TXS.filter(t=>new Date(t.date).getFullYear()===cy);
   const mNet=mon.filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0)-mon.filter(t=>t.type==='exp').reduce((s,t)=>s+t.amount,0);
   const yNet=yr.filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0)-yr.filter(t=>t.type==='exp').reduce((s,t)=>s+t.amount,0);
-  const calMon=TXS.filter(t=>{const d=new Date(t.date);return d.getFullYear()===cy&&d.getMonth()===cm;});
-  const cmI=calMon.filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0);
-  const cmE=calMon.filter(t=>t.type==='exp').reduce((s,t)=>s+t.amount,0);
+  const selDate=cy+'-'+String(cm+1).padStart(2,'0')+'-'+String(cd).padStart(2,'0');
+  const dayTxs=TXS.filter(t=>t.date===selDate);
+  const dI=dayTxs.filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0);
+  const dE=dayTxs.filter(t=>t.type==='exp').reduce((s,t)=>s+t.amount,0);
 
-  document.getElementById('s-inc').textContent=cmI>0?'+'+cmI.toLocaleString()+'원':'0원';
-  document.getElementById('s-exp').textContent=cmE>0?'-'+cmE.toLocaleString()+'원':'0원';
+  document.getElementById('s-inc').textContent=dI>0?'+'+dI.toLocaleString()+'원':'0원';
+  document.getElementById('s-exp').textContent=dE>0?'-'+dE.toLocaleString()+'원':'0원';
 
   const monEl=document.getElementById('s-mon');
   monEl.textContent=(mNet===0?'':(mNet>0?'+':'-'))+Math.abs(mNet).toLocaleString()+'원';
