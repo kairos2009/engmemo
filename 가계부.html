@@ -2062,8 +2062,19 @@ function exportJSON(){
 function exportObsidian(){
   if(!TXS.length){ alert('저장할 거래 내역이 없어요'); return; }
 
-  // 전체를 하나의 MD 파일로
   const sorted = [...TXS].sort((a,b)=>a.date.localeCompare(b.date));
+  const today = new Date();
+  const DOW = ['일','월','화','수','목','금','토'];
+  const fname = '가계부_' + fmtFileDate() + '.md';
+
+  // 연도별 집계
+  const byYear = {};
+  sorted.forEach(t=>{
+    const y = t.date.slice(0,4);
+    if(!byYear[y]) byYear[y]={inc:0,exp:0};
+    if(t.type==='inc') byYear[y].inc+=t.amount;
+    else byYear[y].exp+=t.amount;
+  });
 
   // 월별 그룹
   const byMonth = {};
@@ -2073,39 +2084,81 @@ function exportObsidian(){
     byMonth[key].push(t);
   });
 
-  const DOW=['일','월','화','수','목','금','토'];
-  let md = '# 가계부\n\n';
-  md += '*내보낸 날짜: ' + new Date().toLocaleString('ko-KR') + '*\n\n';
+  // YAML frontmatter (Obsidian Properties)
+  let md = '---\n';
+  md += 'title: 가계부\n';
+  md += 'tags:\n  - 가계부\n  - 재무\n';
+  md += 'date: ' + today.toISOString().slice(0,10) + '\n';
+  md += 'exported: "' + today.toLocaleString('ko-KR') + '"\n';
+  md += '---\n\n';
 
+  md += '# 가계부\n\n';
+
+  // 연도별 요약 테이블
+  Object.keys(byYear).sort().reverse().forEach(y=>{
+    const a=byYear[y], bal=a.inc-a.exp;
+    md += '## ' + y + '년 요약\n\n';
+    md += '| 구분 | 금액 |\n|:---:|---:|\n';
+    md += '| 💰 수입 | ₩' + a.inc.toLocaleString() + ' |\n';
+    md += '| 💸 지출 | ₩' + a.exp.toLocaleString() + ' |\n';
+    md += '| 잔액 | ' + (bal>=0?'+':'') + '₩' + Math.abs(bal).toLocaleString() + ' |\n\n';
+  });
+
+  md += '---\n\n';
+
+  // 월별 상세 (최신 월 먼저)
   Object.keys(byMonth).sort().reverse().forEach(month=>{
     const [y,m] = month.split('-');
     const list = byMonth[month];
     const totalExp = list.filter(t=>t.type==='exp').reduce((s,t)=>s+t.amount,0);
     const totalInc = list.filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0);
+    const bal = totalInc-totalExp;
 
     md += '## ' + y + '년 ' + parseInt(m) + '월\n\n';
-    md += '> 💰 수입 **₩' + totalInc.toLocaleString() + '**  |  ';
-    md += '💸 지출 **₩' + totalExp.toLocaleString() + '**  |  ';
-    md += '잔액 **₩' + (totalInc-totalExp).toLocaleString() + '**\n\n';
+    // Obsidian callout
+    md += '> [!summary] 월 합계\n';
+    md += '> - 💰 수입 **₩' + totalInc.toLocaleString() + '**\n';
+    md += '> - 💸 지출 **₩' + totalExp.toLocaleString() + '**\n';
+    md += '> - 잔액 **' + (bal>=0?'+':'') + '₩' + Math.abs(bal).toLocaleString() + '**\n\n';
 
-    // 날짜별
     const byDay={};
     list.forEach(t=>{ if(!byDay[t.date]) byDay[t.date]=[]; byDay[t.date].push(t); });
 
     Object.keys(byDay).sort().forEach(date=>{
       const d=new Date(date+'T00:00:00');
-      md += '### ' + parseInt(m) + '월 ' + d.getDate() + '일 (' + DOW[d.getDay()] + ')\n\n';
-      md += '| 분류 | 카테고리 | 금액 | 메모 |\n';
-      md += '|:----:|:--------:|-----:|------|\n';
+      const dExp=byDay[date].filter(t=>t.type==='exp').reduce((s,t)=>s+t.amount,0);
+      const dInc=byDay[date].filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0);
+      let heading='### '+parseInt(m)+'월 '+d.getDate()+'일 ('+DOW[d.getDay()]+')';
+      if(byDay[date].length>1){
+        if(dInc>0) heading+=' · +₩'+dInc.toLocaleString();
+        if(dExp>0) heading+=' · -₩'+dExp.toLocaleString();
+      }
+      md += heading+'\n\n';
+      md += '| 구분 | 카테고리 | 금액 | 메모 |\n';
+      md += '|:---:|:---:|---:|:---|\n';
       byDay[date].forEach(t=>{
         const cat=allCats(t.cat);
-        md += '| '+(t.type==='exp'?'지출':'수입')+' | '+cat.e+' '+t.cat+' | ₩'+t.amount.toLocaleString()+' | '+(t.memo||'-')+' |\n';
+        const sign=t.type==='exp'?'-':'+';
+        const rawMemo=(t.memo||'');
+        const isFixed=rawMemo.includes('(고정)');
+        const memo=isFixed?'🔄 '+rawMemo.replace('(고정)','').trim():rawMemo||'-';
+        md += '| '+(t.type==='exp'?'지출':'수입')+' | '+cat.e+' '+t.cat+' | '+sign+'₩'+t.amount.toLocaleString()+' | '+memo+' |\n';
       });
       md += '\n';
     });
   });
 
-  smartDownload(md, '가계부_' + fmtFileDate() + '.md', 'text/markdown');
+  // BOM 없이 저장 (BOM은 Obsidian에서 첫 줄에 깨진 문자로 나타남)
+  const blob = new Blob([md], {type:'text/markdown;charset=utf-8'});
+  if(typeof navigator.share==='function'&&typeof navigator.canShare==='function'){
+    const file=new File([blob],fname,{type:'text/markdown'});
+    if(navigator.canShare({files:[file]})){
+      navigator.share({files:[file],title:fname})
+        .catch(err=>{ if(err.name!=='AbortError') _dlFallback(blob,fname); });
+      return;
+    }
+  }
+  _dlFallback(blob, fname);
 }
 
 function importJSON(e){
