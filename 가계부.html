@@ -959,7 +959,10 @@ html, body {
 
   <div class="summary2">
     <div>수입 <span class="s-income" id="s-inc">+0원</span></div>
-    <div>지출 <span class="s-expense" id="s-exp">-0원</span></div>
+    <div style="text-align:right">
+      <div>지출 <span class="s-expense" id="s-exp">-0원</span></div>
+      <div id="s-pending" style="font-size:11px;color:var(--sub);display:none"></div>
+    </div>
   </div>
 
   <div class="cal-wrap2">
@@ -1398,11 +1401,16 @@ function renderCal(){
   }
 
   // ── 수입/지출 합계 ──
+  const todayStr=tod.toISOString().slice(0,10);
   const ranged=TXS.filter(t=>inMonthRange(t.date,cy,cm));
   const cmI=ranged.filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0);
-  const cmE=ranged.filter(t=>t.type==='exp').reduce((s,t)=>s+t.amount,0);
+  const cmE=ranged.filter(t=>t.type==='exp'&&!(t.recurId&&t.date>todayStr)).reduce((s,t)=>s+t.amount,0);
+  const cmP=ranged.filter(t=>t.type==='exp'&&t.recurId&&t.date>todayStr).reduce((s,t)=>s+t.amount,0);
   document.getElementById('s-inc').textContent=cmI>0?'+'+cmI.toLocaleString()+'원':'0원';
   document.getElementById('s-exp').textContent=cmE>0?'-'+cmE.toLocaleString()+'원':'0원';
+  const pendEl=document.getElementById('s-pending');
+  if(cmP>0){pendEl.textContent='(예정 -'+cmP.toLocaleString()+'원)';pendEl.style.display='block';}
+  else{pendEl.style.display='none';}
 
   // ── 셀 생성 헬퍼 ──
   function makeCell(dateStr,dayNum,dow,isOther){
